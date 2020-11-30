@@ -1,13 +1,20 @@
+library("DT")
 #UI model Overview - ...
 
 ui_model_correlation <- sidebarLayout(
   sidebarPanel(),
-  mainPanel()
+  mainPanel(
+    DT::dataTableOutput("correlation")
+  )
 )
 
 ui_model_predictors <- sidebarLayout(
-  sidebarPanel(),
-  mainPanel()
+  sidebarPanel(
+    
+  ),
+  mainPanel(
+    DT::dataTableOutput("predictors_summary")
+  )
 )
 
 ui_model_class_predictors <- sidebarLayout(

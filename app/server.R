@@ -1,4 +1,5 @@
 library("randomForest")
+library("DT")
 
 # Server ------------------------------------------------------------------
 
@@ -13,6 +14,18 @@ server <- function(input, output) {
     # clean up data frame to set types appropriately
     return(df)
   }
+  
+  output$correlation <- DT::renderDataTable({
+    as.data.frame(
+      round(cor(data_read()), 3)
+    )
+  }) 
+  
+  output$predictors_summary <- DT::renderDataTable({
+    as.data.frame(
+      apply(data_read(), 2, summary)
+    )
+  })
   
   output$predictors<-renderUI({
     checkboxGroupInput("predictors","Select predictors : ", choices = names(data_read()))
