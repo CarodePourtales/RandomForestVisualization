@@ -18,17 +18,20 @@ ui_model_result_summary <- sidebarLayout(
 
 ui_model_result_prediction <- sidebarLayout(
   sidebarPanel(),
-  mainPanel()
+  mainPanel(plotOutput("prediction"))
 )
 
 ui_model_result_error <- sidebarLayout(
   sidebarPanel(),
-  mainPanel()
+  mainPanel(
+    verbatimTextOutput("confusionmatrix"),
+    plotOutput("cross_validation")
+  )
 )
 
 ui_model_result <- mainPanel(
   tabsetPanel(
     tabPanel("Summary", ui_model_result_summary), 
-    tabPanel("Prediction", ui_model_result_prediction),
-    tabPanel("Confusion Matrix and Error", ui_model_result_error)
+    tabPanel("Confusion Matrix and Error", ui_model_result_error),
+    tabPanel("Prediction", ui_model_result_prediction)
   ))
