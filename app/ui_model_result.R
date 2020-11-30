@@ -12,6 +12,7 @@ ui_model_result_summary <- sidebarLayout(
     )
   ),
   mainPanel(
+    h2("Model summary"),
     verbatimTextOutput("randomForest")
   )
 )
@@ -26,19 +27,24 @@ ui_model_result_prediction <- sidebarLayout(
     )
   ),
   mainPanel(
+    h2("Predictions"),
     plotOutput("prediction"),
+    h2("Missclassified predictions"),
     plotOutput("missclassified_prediction"))
 )
 
 ui_model_result_error <- sidebarLayout(
   sidebarPanel(),
   mainPanel(
+    h2("Some measures : "),
     verbatimTextOutput("confusionmatrix"),
     verbatimTextOutput("accuracy_rate"),
     verbatimTextOutput("sensitivity"),
     verbatimTextOutput("specificity"),
     verbatimTextOutput("precision"),
-    verbatimTextOutput("fmesure")
+    verbatimTextOutput("fmesure"),
+    h2("Some calculations : "),
+    h3("AIC "),
   )
 )
 
