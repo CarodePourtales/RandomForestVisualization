@@ -25,7 +25,11 @@ ui_model_result_error <- sidebarLayout(
   sidebarPanel(),
   mainPanel(
     verbatimTextOutput("confusionmatrix"),
-    plotOutput("cross_validation")
+    verbatimTextOutput("accuracy_rate"),
+    verbatimTextOutput("sensitivity"),
+    verbatimTextOutput("specificity"),
+    verbatimTextOutput("precision"),
+    verbatimTextOutput("fmesure")
   )
 )
 
