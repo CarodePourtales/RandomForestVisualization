@@ -1,5 +1,5 @@
 # UI ----------------------------------------------------------------------
-ui_data <- sidebarLayout(
+ui_model <- sidebarLayout(
   sidebarPanel(
     fileInput('file', 'Choose CSV File',
               accept=c('text/csv', 
@@ -35,13 +35,18 @@ ui_data <- sidebarLayout(
   )
 )
 
+ui_data <- sidebarLayout(sidebarPanel(),
+                         mainPanel())
 
+ui_model_overview <- sidebarLayout(sidebarPanel(),
+                                   mainPanel())
+    
 ui <- (fluidPage(
   
   titlePanel("Dashboard"),
   
   navbarPage("Menu",
-             tabPanel("Data Overview"),
-             tabPanel("Model Overview"),
-             tabPanel("Model Result",ui_data))
+             tabPanel("Data Overview", ui_data),
+             tabPanel("Model Overview", ui_model_overview),
+             tabPanel("Model Result", ui_model))
 ))
