@@ -32,8 +32,8 @@ server <- function(input, output) {
         ntr <- 0.8*nobs # assumes first 20% of data tunes good system
         indices.train <- 1:ntr # 
         set.seed(42)
-        model <-  randomForest(input$class ~ ., data=df[indices.train ,c(input$predictors, input$class)],mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), nodesize=as.integer(input$nodesize))
-        print(model)
+        model <-  randomForest(Result ~ ., data=df[indices.train ,c(input$predictors, input$class)],mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), nodesize=as.integer(input$nodesize))
+        summary(model)
       })
     }
   )
