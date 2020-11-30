@@ -26,6 +26,14 @@ server <- function(input, output) {
     selectInput("class","Select class : ", choices = names(data_read()))
   })
   
+  output$axis_x<-renderUI({
+    selectInput("axis_x","Select variable x : ", choices = names(data_read()))
+  })
+  
+  output$axis_y<-renderUI({
+    selectInput("axis_y","Select variable y : ", choices = names(data_read()))
+  })
+  
   observeEvent(
     eventExpr = input[["submit_loc"]],
     handlerExpr = {
@@ -46,15 +54,6 @@ server <- function(input, output) {
         print(model.confusion_matrix())
       })
       
-      output$prediction <- renderPlot({
-        nobs <- nrow(data_read())
-        ntr <- 0.8*nobs
-        indices.test <- (ntr+1):nobs
-        dftest <- data_read()[indices.test ,c(input$predictors, input$class)]
-        dftest$prediction <- model.prediction()
-        p <- plot(data_read()[indices.test ,c(input$predictors)], col = dftest$prediction, pch = 20, cex = 3) 
-        print(p)
-        })
       
       output$accuracy_rate <- renderPrint({
         model.accuracyrate = (model.confusion_matrix()[1,1] + model.confusion_matrix()[2,2]) / (model.confusion_matrix()[1,1] + model.confusion_matrix()[1,2] + model.confusion_matrix()[2,1] +model.confusion_matrix()[2,2])
@@ -83,6 +82,33 @@ server <- function(input, output) {
         model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
         model.fmesure
       })
+      
+      observeEvent(
+          eventExpr = input[["submit_loc2"]],
+          handlerExpr = { 
+            output$prediction <- renderPlot({
+              nobs <- nrow(data_read())
+              ntr <- 0.8*nobs
+              indices.test <- (ntr+1):nobs
+              dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
+              dftest$prediction <- model.prediction()
+              p <- plot(data_read()[indices.test ,c(input$axis_x, input$axis_y)], col = dftest$prediction, pch = 20, cex = 3) 
+              print(p)
+              })
+            
+            output$missclassified_prediction <- renderPlot({
+              nobs <- nrow(data_read())
+              ntr <- 0.8*nobs
+              indices.test <- (ntr+1):nobs
+              dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
+              dftest$prediction = model.prediction()
+              dftrue = dftest[dftest$prediction!=data_read()[indices.test ,input$class],]
+              if (nrow(dftrue)) {
+                p <- plot(dftrue[1:nrow(dftrue) ,c(input$axis_x, input$axis_y)], col = dftrue$prediction, pch = 20, cex = 3) 
+                print(p)}
+        })
+        })
+      
       
     }
   )

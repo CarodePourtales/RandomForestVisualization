@@ -17,8 +17,17 @@ ui_model_result_summary <- sidebarLayout(
 )
 
 ui_model_result_prediction <- sidebarLayout(
-  sidebarPanel(),
-  mainPanel(plotOutput("prediction"))
+  sidebarPanel(
+    uiOutput('axis_x'),
+    uiOutput('axis_y'),
+    actionButton(
+      inputId = "submit_loc2",
+      label = "Submit"
+    )
+  ),
+  mainPanel(
+    plotOutput("prediction"),
+    plotOutput("missclassified_prediction"))
 )
 
 ui_model_result_error <- sidebarLayout(
