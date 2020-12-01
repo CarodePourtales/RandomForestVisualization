@@ -1,7 +1,8 @@
 # Server ------------------------------------------------------------------
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
+  # METHOD ====
   data_read <- function() {
     data <- input$file
     if (is.null(data))
@@ -12,17 +13,135 @@ server <- function(input, output) {
     return(df)
   }
   
-  output$correlation <- DT::renderDataTable({
-    as.data.frame(
-      round(cor(data_read()), 3)
-    )
-  }) 
+  numericColumns <- reactive({
+    df <- data_read()
+    colnames(df)[sapply(df, is.numeric)]
+  })
+  
+  corTest <- function(mat, conf.level = 0.95) {
+    mat <- as.matrix(mat)
+    n <- ncol(mat)
+    p.mat <- lowCI.mat <- uppCI.mat <- matrix(NA, n, n)
+    diag(p.mat) <- 0
+    diag(lowCI.mat) <- diag(uppCI.mat) <- 1
+    for (i in 1:(n - 1)) {
+      for (j in (i + 1):n) {
+        try({
+          tmp <- cor.test(mat[, i], mat[, j], conf.level = conf.level)
+          p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+          lowCI.mat[i, j] <- lowCI.mat[j, i] <- tmp$conf.int[1]
+          uppCI.mat[i, j] <- uppCI.mat[j, i] <- tmp$conf.int[2]
+        }, silent = TRUE)
+      }
+    }
+    return(list(p.mat, lowCI.mat, uppCI.mat))
+  }
+  
+  sigConfMat <- reactive({
+    val <- correlation()
+    if(!is.null(val))
+      corTest(val, input$corr_confLevel)
+  })
+  
+  # ===== METHOD
+  
+  # OVERVIEW ========
+  # https://github.com/saurfang/shinyCorrplot/
+  
+  # Correlation
+  correlation <- reactive({
+    data <- data_read()
+    vars <- input$variables
+    
+    if(is.null(data) || !length(intersect(vars, colnames(data)))) {
+      return(NULL)
+    } else {
+      tryCatch({
+        res <- cor(data_read()[,input$variables], use = input$corr_use, method = input$corr_method)
+        if(input$corr_precision == 0){
+          return(res)
+        }
+        else{
+          return(round(res, input$corr_precision))
+        }
+      }, error = function(e){
+        return(NULL)
+      })
+    }
+  })
+  
+  #Update hclust rect max
+  observe({
+    val <- correlation()
+    if(!is.null(val))
+      updateNumericInput(session, "plotHclustAddrect", max = nrow(val))
+  })
+  
+  #Update variable selection
+  observe({
+    updateSelectInput(session, "variables", choices = numericColumns(), selected = numericColumns())
+  })
+  
+  # Corr plot
+  observe(tryCatch({
+    output$ui_corr_plot <- renderPlot({
+      val <- correlation()
+      if(is.null(val)) return(NULL)
+      
+      val[is.na(val)] <- 0
+      args <- list(val,
+                   order = if(input$corr_plotOrder == "manual") "original" else input$corr_plotOrder, 
+                   hclust.method = input$corr_plotHclustMethod, 
+                   addrect = input$corr_plotHclustAddrect,
+                   
+                   p.mat = sigConfMat()[[1]],
+                   sig.level = if(input$corr_sigTest) input$corr_sigLevel else NULL,
+                   insig = if(input$corr_sigTest) input$corr_sigAction else NULL,
+                   
+                   lowCI.mat = sigConfMat()[[2]],
+                   uppCI.mat = sigConfMat()[[3]],
+                   plotCI = if(input$corr_showConf) input$corr_confPlot else "n")
+      
+      if(input$corr_showConf) {
+        do.call(corrplot, c(list(type = input$corr_plotType), args))
+      } else if(input$corr_plotMethod == "mixed") {
+        do.call(corrplot.mixed, c(list(lower = input$corr_plotLower,
+                                       upper = input$corr_plotUpper),
+                                  args))
+      } else {
+        do.call(corrplot, c(list(method = input$corr_plotMethod, type = input$corr_plotType), args))
+      }
+    })
+  }, error = function(e){
+    output$ui_submit_cor_heatmap_err <- renderPrint({e})
+  }))
+  
+  observe(tryCatch({
+    corr <- correlation()
+    output$ui_corr_tab <- DT::renderDataTable({
+      as.data.frame(corr)
+    }, ) 
+  }, error = function(e){
+    output$ui_corr_tab_err <- renderPrint({e})
+  }))
+  
+  # Predictor overview
+  observe({
+    updateSelectInput(session, "ui_predictors", choices = numericColumns(), selected = numericColumns())
+  })
   
   output$predictors_summary <- DT::renderDataTable({
-    as.data.frame(
-      apply(data_read(), 2, summary)
-    )
+    predictors <- input$ui_predictors
+    
+    if (length(predictors) == 0){
+      return(NULL)
+    }
+    
+    data <- apply(data_read()[predictors], 2, summary)
+    return(as.data.frame(data))
   })
+  
+  #====== OVERVIEW
   
   output$predictors<-renderUI({
     checkboxGroupInput("predictors","Select predictors : ", choices = names(data_read()))
