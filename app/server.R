@@ -70,8 +70,8 @@ server <- function(input, output) {
           for (j in 1:length(class)) {
             print(vars[i])
             print(class[j])
-            partialPlot(model(), data_read()[indices.train ,c(input$predictors, input$class)], vars[i], class[j],
-                        main=paste("Partial Dependence on", vars[i]))
+            partialPlot(model(), data_read()[indices.train ,c(input$predictors, input$class)], data_read()[indices.train ,vars[i]], class[j],
+                        main=paste("Partial Dependence on", vars[i], "with class", class[j]))
           }
         } 
         par(op)
