@@ -22,7 +22,8 @@ ui_model_class_predictors <- sidebarLayout(
   mainPanel()
 )
 
-ui_model_overview <- mainPanel(
+ui_model_overview <- tabItem(
+  'model_overview',
   tabsetPanel(
     tabPanel("Correlation", ui_model_correlation),
     tabPanel("Predictors overview", ui_model_predictors),

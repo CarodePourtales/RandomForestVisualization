@@ -1,4 +1,5 @@
 #UI model Result - Caroline de POURTALES
+
 ui_model_result_summary <- sidebarLayout(
   sidebarPanel(
     uiOutput('class'),
@@ -12,26 +13,46 @@ ui_model_result_summary <- sidebarLayout(
     )
   ),
   mainPanel(
-    verbatimTextOutput("randomForest")
+    h2("Model summary"),
+    verbatimTextOutput("randomForest"),
+    width = 12
   )
 )
 
 ui_model_result_prediction <- sidebarLayout(
-  sidebarPanel(),
-  mainPanel(plotOutput("prediction"))
-)
-
-ui_model_result_error <- sidebarLayout(
-  sidebarPanel(),
+  sidebarPanel(
+    uiOutput('axis_x'),
+    uiOutput('axis_y'),
+    actionButton(
+      inputId = "submit_loc2",
+      label = "Submit"
+    )
+  ),
   mainPanel(
-    verbatimTextOutput("confusionmatrix"),
-    plotOutput("cross_validation")
-  )
+    fluidRow(
+      verbatimTextOutput("confusionmatrix"),
+      valueBoxOutput("accuracy_rate",
+        width = 5),
+      valueBoxOutput("sensitivity",
+        width = 5),
+      valueBoxOutput("specificity",
+        width = 5),
+      valueBoxOutput("precision",
+        width = 5),
+      valueBoxOutput("fmesure",
+        width = 5)
+      ),
+    fluidRow(
+      splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
+    ),
+    width = 12
+    )
 )
 
-ui_model_result <- mainPanel(
+
+ui_model_result <- tabItem(
+  "model_result",
   tabsetPanel(
     tabPanel("Summary", ui_model_result_summary), 
-    tabPanel("Confusion Matrix and Error", ui_model_result_error),
-    tabPanel("Prediction", ui_model_result_prediction)
+    tabPanel("Prediction and accruracy", ui_model_result_prediction)
   ))

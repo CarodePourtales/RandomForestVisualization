@@ -35,67 +35,109 @@ server <- function(input, output) {
     selectInput("class","Select class : ", choices = names(data_read()))
   })
   
+  output$axis_x<-renderUI({
+    selectInput("axis_x","Select variable x : ", choices = names(data_read()))
+  })
+  
+  output$axis_y<-renderUI({
+    selectInput("axis_y","Select variable y : ", choices = names(data_read()))
+  })
+  
   observeEvent(
     eventExpr = input[["submit_loc"]],
     handlerExpr = {
       
-      output$execute <- renderPrint({
-        df = reactive({data_read()})
-        # Build the training/validate/test datasets.
-        nobs <- nrow(df)
-        ntr <- 0.8*nobs # assumes first 20% of data tunes good system
-        indices.train <- 1:ntr # 
-        indices.test <- (ntr+1):nobs
-        set.seed(42)
-        x <- input$class
-        model <-  reactive({randomForest(as.factor(df[indices.train,x]) ~ ., data=df[indices.train ,c(input$predictors, input$class)],mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), nodesize=as.integer(input$nodesize))})
-        
-        df.test <- df[indices.test ,c(input$predictors, input$class)]
-        df$prediction <- predict(model, df.test , type="response",
-                                   norm.votes=TRUE, predict.all=FALSE, proximity=FALSE, nodes=FALSE)
-        
-        })
+      nobs <- nrow(data_read())
+      ntr <- 0.8*nobs
+      indices.train <- 1:ntr # 
+      indices.test <- (ntr+1):nobs
+      model <-reactive({randomForest(as.factor(data_read()[indices.train,input$class]) ~ ., data=data_read()[indices.train ,c(input$predictors, input$class)],mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), nodesize=as.integer(input$nodesize))})
+      model.prediction <- reactive({predict(model(), newdata = data_read()[indices.test ,c(input$predictors, input$class)])})
+      model.confusion_matrix <- reactive({table(model.prediction(), data_read()[indices.test ,input$class])})
       
       output$randomForest <- renderPrint({
-        print(model)
-      })
-      
-      output$cross_validation <- renderPlot({
-        nobs <- nrow(df)
-        ntr <- 0.8*nobs 
-        indices.train <- 1:ntr # 
-        x <- input$class
-        set.seed(42)
-        accuracyrate <- rep(NA,20)
-        deg = 1:20
-        for (d in deg) {
-          model <- randomForest(as.factor(df[indices.train,x]) ~ ., 
-                                data=df[indices.train ,c(input$predictors, input$class)], 
-                                mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), nodesize=d)
-          model.confusion_matrix = model$confusion
-          model.accuracyrate = (model.confusion_matrix[1,1] + model.confusion_matrix[2,2]) / (model.confusion_matrix[1,1] + model.confusion_matrix[1,2] + model.confusion_matrix[2,1] +model.confusion_matrix[2,2])
-          accuracyrate[d] = model.accuracyrate
-        }
-        p <- plot(deg, accuracyrate, type = "l", lty = 1)
-        print(p)
+        print(model())
       })
       
       output$confusionmatrix <- renderPrint({
-        model$confusion[1:2,1:2]
+        model.confusion_matrix()
       })
       
-      output$prediction <- renderPlot({
-        nobs <- nrow(df)
-        ntr <- 0.8*nobs
-        indices.test <- (ntr+1):nobs
-        p <- ggplot() + geom_point(aes(c(input$predictors), color = factor(df$prediction)), data = df[indices.test ,c(input$predictors)], ) + scale_color_manual(values = c("red", "green"))
-        print(p)
+      
+      output$accuracy_rate <- renderValueBox({
+        model.accuracyrate = (model.confusion_matrix()[1,1] + model.confusion_matrix()[2,2]) / (model.confusion_matrix()[1,1] + model.confusion_matrix()[1,2] + model.confusion_matrix()[2,1] +model.confusion_matrix()[2,2])
+        valueBox(
+          "Accuracy rate",
+          model.accuracyrate,
+          icon = icon("credit-card")
+        )
+      })
+      
+      output$sensitivity <- renderValueBox({
+        model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
+        valueBox(
+          "Sensitivity",
+          model.sensitivity,
+          icon = icon("credit-card")
+        )
+      })
+      
+      output$specificity <- renderValueBox({
+        model.specificity = model.confusion_matrix()[1,1]/(model.confusion_matrix()[1,1] + model.confusion_matrix()[2,1])
+        valueBox(
+          "Specificity",
+          model.specificity,
+          icon = icon("credit-card")
+        )
+      })
+      
+      output$precision <- renderValueBox({
+        model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
+        valueBox(
+          "Precision",
+          model.precision,
+          icon = icon("credit-card")
+        )
+      })
+      
+      output$fmesure <- renderValueBox({
+        model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
+        model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
+        
+        model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
+        valueBox(
+          "F measure",
+          model.fmesure,
+          icon = icon("credit-card")
+        )
+      })
+      
+      observeEvent(
+          eventExpr = input[["submit_loc2"]],
+          handlerExpr = { 
+            output$prediction <- renderPlot({
+              nobs <- nrow(data_read())
+              ntr <- 0.8*nobs
+              indices.test <- (ntr+1):nobs
+              dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
+              dftest$prediction <- model.prediction()
+              p <- plot(data_read()[indices.test ,c(input$axis_x, input$axis_y)], col = dftest$prediction, pch = 20, cex = 3) 
+              print(p)
+              })
+            
+            output$missclassified_prediction <- renderPlot({
+              nobs <- nrow(data_read())
+              ntr <- 0.8*nobs
+              indices.test <- (ntr+1):nobs
+              dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
+              dftest$prediction = model.prediction()
+              dftrue = dftest[dftest$prediction!=data_read()[indices.test ,input$class],]
+              if (nrow(dftrue)) {
+                p <- plot(dftrue[1:nrow(dftrue) ,c(input$axis_x, input$axis_y)], col = dftrue$prediction, pch = 20, cex = 3) 
+                print(p)}
+        })
         })
       
-      output$accuracy_rate <- renderPrint({
-        model.accuracyrate = (model$confusion[1,1] + model$confusion[2,2]) / (model$confusion[1,1] + model$confusion[1,2] + model$confusion[2,1] +model$confusion[2,2])
-        model.accuracyrate
-      })
       
     }
   )
