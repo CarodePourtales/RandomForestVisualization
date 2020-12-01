@@ -1,5 +1,5 @@
-library("randomForest")
-library("ggplot2")
+library(randomForest)
+library(ggplot2)
 library(ggfortify)
 library(MASS)
 library(dplyr)
@@ -50,37 +50,61 @@ server <- function(input, output) {
         print(model())
       })
       
-      output$confusionmatrix <- renderPrint({
-        print(model.confusion_matrix())
+      output$confusionmatrix <- renderValueBox({
+        valueBox(
+          "Confusion matrix",
+          model.confusion_matrix(),
+          icon = icon("angle-right")
+        )
       })
       
       
-      output$accuracy_rate <- renderPrint({
+      output$accuracy_rate <- renderValueBox({
         model.accuracyrate = (model.confusion_matrix()[1,1] + model.confusion_matrix()[2,2]) / (model.confusion_matrix()[1,1] + model.confusion_matrix()[1,2] + model.confusion_matrix()[2,1] +model.confusion_matrix()[2,2])
-        model.accuracyrate
+        valueBox(
+          "Accuracy rate",
+          model.accuracyrate,
+          icon = icon("credit-card")
+        )
       })
       
-      output$sensitivity <- renderPrint({
+      output$sensitivity <- renderValueBox({
         model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
-        model.sensitivity
+        valueBox(
+          "Sensitivity",
+          model.sensitivity,
+          icon = icon("credit-card")
+        )
       })
       
-      output$specificity <- renderPrint({
+      output$specificity <- renderValueBox({
         model.specificity = model.confusion_matrix()[1,1]/(model.confusion_matrix()[1,1] + model.confusion_matrix()[2,1])
-        model.specificity
+        valueBox(
+          "Specificity",
+          model.specificity,
+          icon = icon("credit-card")
+        )
       })
       
-      output$precision <- renderPrint({
+      output$precision <- renderValueBox({
         model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
-        model.precision
+        valueBox(
+          "Precision",
+          model.precision,
+          icon = icon("credit-card")
+        )
       })
       
-      output$fmesure <- renderPrint({
+      output$fmesure <- renderValueBox({
         model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
         model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
         
         model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
-        model.fmesure
+        valueBox(
+          "F measure",
+          model.fmesure,
+          icon = icon("credit-card")
+        )
       })
       
       observeEvent(

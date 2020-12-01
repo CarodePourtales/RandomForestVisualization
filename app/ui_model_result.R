@@ -1,4 +1,5 @@
 #UI model Result - Caroline de POURTALES
+
 ui_model_result_summary <- sidebarLayout(
   sidebarPanel(
     uiOutput('class'),
@@ -27,30 +28,29 @@ ui_model_result_prediction <- sidebarLayout(
     )
   ),
   mainPanel(
-    h2("Predictions"),
-    plotOutput("prediction"),
-    h2("Missclassified predictions"),
-    plotOutput("missclassified_prediction"))
+    fluidRow(
+      valueBoxOutput("confusionmatrix",
+        width = 5),
+      valueBoxOutput("accuracy_rate",
+        width = 5),
+      valueBoxOutput("sensitivity",
+        width = 5),
+      valueBoxOutput("specificity",
+        width = 5),
+      valueBoxOutput("precision",
+        width = 5),
+      valueBoxOutput("fmesure",
+        width = 5)
+      ),
+    fluidRow(
+      splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
+    )
+    )
 )
 
-ui_model_result_error <- sidebarLayout(
-  sidebarPanel(),
-  mainPanel(
-    h2("Some measures : "),
-    verbatimTextOutput("confusionmatrix"),
-    verbatimTextOutput("accuracy_rate"),
-    verbatimTextOutput("sensitivity"),
-    verbatimTextOutput("specificity"),
-    verbatimTextOutput("precision"),
-    verbatimTextOutput("fmesure"),
-    h2("Some calculations : "),
-    h3("AIC "),
-  )
-)
 
 ui_model_result <- mainPanel(
   tabsetPanel(
     tabPanel("Summary", ui_model_result_summary), 
-    tabPanel("Confusion Matrix and Error", ui_model_result_error),
-    tabPanel("Prediction", ui_model_result_prediction)
+    tabPanel("Prediction and accruracy", ui_model_result_prediction)
   ))

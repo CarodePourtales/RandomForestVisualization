@@ -1,4 +1,7 @@
 # UI ----------------------------------------------------------------------
+library(shiny)
+library(shinydashboard)
+library(fresh)
 
 source("ui_model_result.R")
 source("ui_model_overview.R")
@@ -7,6 +10,8 @@ source("ui_data_exploration.R")
 
   
 ui <- (fluidPage(
+  
+  use_theme("bootstrap.css"),
   
   titlePanel("Dashboard"),
   
