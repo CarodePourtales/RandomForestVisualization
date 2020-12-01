@@ -141,6 +141,11 @@ server <- function(input, output, session) {
     return(as.data.frame(data))
   })
   
+  #====== DATA
+  
+  # voir si il est possible de réduire la largeur de la table
+  output$tbl <- renderDT(data_read(), options = list(lengthChange = FALSE), width = 'auto')
+  
   #====== OVERVIEW
   
   output$predictors<-renderUI({

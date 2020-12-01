@@ -1,6 +1,7 @@
 #UI data exploration
 
 ui_data_loading <- sidebarLayout(
+  
   sidebarPanel(
     fileInput('file', 'Choose CSV File',
               accept=c('text/csv', 'text/comma-separated-values,text/plain','.csv')),
@@ -10,7 +11,9 @@ ui_data_loading <- sidebarLayout(
                  c(Comma=',', Semicolon=';',Tab='\t'),','),
     radioButtons('quote', 'Quote',c(None='','Double Quote'='"','Single Quote'="'"), '"'),
     hr()),
+  
   mainPanel(
+    DT::DTOutput('tbl')
   )
 )
 
