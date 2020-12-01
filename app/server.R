@@ -48,12 +48,33 @@ server <- function(input, output) {
       ntr <- 0.8*nobs
       indices.train <- 1:ntr # 
       indices.test <- (ntr+1):nobs
-      model <-reactive({randomForest(as.factor(data_read()[indices.train,input$class]) ~ ., data=data_read()[indices.train ,c(input$predictors, input$class)],mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), nodesize=as.integer(input$nodesize))})
+      model <-reactive({randomForest(as.factor(data_read()[indices.train,input$class]) ~ ., 
+                                     data=data_read()[indices.train ,c(input$predictors, input$class)],
+                                     mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), 
+                                     nodesize=as.integer(input$nodesize))})
       model.prediction <- reactive({predict(model(), newdata = data_read()[indices.test ,c(input$predictors, input$class)])})
       model.confusion_matrix <- reactive({table(model.prediction(), data_read()[indices.test ,input$class])})
       
       output$randomForest <- renderPrint({
         print(model())
+      })
+      
+      output$influence <- renderPlot ({
+        nobs <- nrow(data_read())
+        ntr <- 0.8*nobs
+        indices.train <- 1:ntr # 
+        vars = c(input$predictors)
+        class = c("0","1")
+        op <- par(mfrow=c(length(vars), length(class)))
+        for (i in 1:length(vars)) {
+          for (j in 1:length(class)) {
+            print(vars[i])
+            print(class[j])
+            partialPlot(model(), data_read()[indices.train ,c(input$predictors, input$class)], vars[i], class[j],
+                        main=paste("Partial Dependence on", vars[i]))
+          }
+        } 
+        par(op)
       })
       
       output$confusionmatrix <- renderPrint({
@@ -66,6 +87,7 @@ server <- function(input, output) {
         valueBox(
           "Accuracy rate",
           model.accuracyrate,
+          width = 2,
           icon = icon("credit-card")
         )
       })
@@ -75,6 +97,7 @@ server <- function(input, output) {
         valueBox(
           "Sensitivity",
           model.sensitivity,
+          width = 2,
           icon = icon("credit-card")
         )
       })
@@ -84,6 +107,7 @@ server <- function(input, output) {
         valueBox(
           "Specificity",
           model.specificity,
+          width = 2,
           icon = icon("credit-card")
         )
       })
@@ -93,6 +117,7 @@ server <- function(input, output) {
         valueBox(
           "Precision",
           model.precision,
+          width = 2,
           icon = icon("credit-card")
         )
       })
@@ -105,6 +130,7 @@ server <- function(input, output) {
         valueBox(
           "F measure",
           model.fmesure,
+          width = 2,
           icon = icon("credit-card")
         )
       })
