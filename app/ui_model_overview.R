@@ -9,9 +9,7 @@ ui_model_correlation <- sidebarLayout(
 )
 
 ui_model_predictors <- sidebarLayout(
-  sidebarPanel(
-    
-  ),
+  sidebarPanel(),
   mainPanel(
     DT::dataTableOutput("predictors_summary")
   )
