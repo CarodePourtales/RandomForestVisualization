@@ -25,7 +25,8 @@ ui_data_plot <- sidebarLayout(
 )
 
 
-ui_data_exploration <- mainPanel(
+ui_data_exploration <- tabItem(
+  "data_exploration",
   tabsetPanel(
     tabPanel("Data Loading", ui_data_loading),
     tabPanel("Distribution", ui_data_summary), 

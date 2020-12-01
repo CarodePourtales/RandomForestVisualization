@@ -1,9 +1,3 @@
-library(randomForest)
-library(ggplot2)
-library(ggfortify)
-library(MASS)
-library(dplyr)
-
 # Server ------------------------------------------------------------------
 
 server <- function(input, output) {
@@ -17,6 +11,18 @@ server <- function(input, output) {
     # clean up data frame to set types appropriately
     return(df)
   }
+  
+  output$correlation <- DT::renderDataTable({
+    as.data.frame(
+      round(cor(data_read()), 3)
+    )
+  }) 
+  
+  output$predictors_summary <- DT::renderDataTable({
+    as.data.frame(
+      apply(data_read(), 2, summary)
+    )
+  })
   
   output$predictors<-renderUI({
     checkboxGroupInput("predictors","Select predictors : ", choices = names(data_read()))
@@ -50,12 +56,8 @@ server <- function(input, output) {
         print(model())
       })
       
-      output$confusionmatrix <- renderValueBox({
-        valueBox(
-          "Confusion matrix",
-          model.confusion_matrix(),
-          icon = icon("angle-right")
-        )
+      output$confusionmatrix <- renderPrint({
+        model.confusion_matrix()
       })
       
       

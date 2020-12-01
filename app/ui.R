@@ -1,7 +1,4 @@
 # UI ----------------------------------------------------------------------
-library(shiny)
-library(shinydashboard)
-library(fresh)
 
 source("ui_model_result.R")
 source("ui_model_overview.R")
@@ -9,14 +6,23 @@ source("ui_data_exploration.R")
 
 
   
-ui <- (fluidPage(
+ui <- (dashboardPage(
   
-  use_theme("bootstrap.css"),
+  dashboardHeader(
+    title = 'Dashboard'
+  ),
   
-  titlePanel("Dashboard"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Data Exploration", tabName = "data_exploration", icon = icon("dashboard")),
+      menuItem("Model Overview", tabName = "model_overview", icon = icon("stream")),
+      menuItem("Model Result", tabName = "model_result", icon = icon("trophy")))),
+      
   
-  navbarPage("Menu",
-             tabPanel("Data Exploration", ui_data_exploration),
-             tabPanel("Model Overview", ui_model_overview),
-             tabPanel("Model Result", ui_model_result))
+  dashboardBody(
+    tabItems(
+      ui_data_exploration,
+      ui_model_overview,
+      ui_model_result)
+  )
 ))

@@ -1,13 +1,20 @@
+
 #UI model Overview - ...
 
 ui_model_correlation <- sidebarLayout(
   sidebarPanel(),
-  mainPanel()
+  mainPanel(
+    DT::dataTableOutput("correlation")
+  )
 )
 
 ui_model_predictors <- sidebarLayout(
-  sidebarPanel(),
-  mainPanel()
+  sidebarPanel(
+    
+  ),
+  mainPanel(
+    DT::dataTableOutput("predictors_summary")
+  )
 )
 
 ui_model_class_predictors <- sidebarLayout(
@@ -15,7 +22,8 @@ ui_model_class_predictors <- sidebarLayout(
   mainPanel()
 )
 
-ui_model_overview <- mainPanel(
+ui_model_overview <- tabItem(
+  'model_overview',
   tabsetPanel(
     tabPanel("Correlation", ui_model_correlation),
     tabPanel("Predictors overview", ui_model_predictors),

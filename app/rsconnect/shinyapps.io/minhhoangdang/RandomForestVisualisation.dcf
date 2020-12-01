@@ -1,0 +1,12 @@
+name: RandomForestVisualisation
+title: RandomForestVisualisation
+username:
+account: minhhoangdang
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3326561
+bundleId: 3924645
+url: https://minhhoangdang.shinyapps.io/RandomForestVisualisation/
+when: 1606770917.61851
+asMultiple: FALSE
+asStatic: FALSE

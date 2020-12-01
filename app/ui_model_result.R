@@ -14,7 +14,8 @@ ui_model_result_summary <- sidebarLayout(
   ),
   mainPanel(
     h2("Model summary"),
-    verbatimTextOutput("randomForest")
+    verbatimTextOutput("randomForest"),
+    width = 12
   )
 )
 
@@ -29,8 +30,7 @@ ui_model_result_prediction <- sidebarLayout(
   ),
   mainPanel(
     fluidRow(
-      valueBoxOutput("confusionmatrix",
-        width = 5),
+      verbatimTextOutput("confusionmatrix"),
       valueBoxOutput("accuracy_rate",
         width = 5),
       valueBoxOutput("sensitivity",
@@ -44,12 +44,14 @@ ui_model_result_prediction <- sidebarLayout(
       ),
     fluidRow(
       splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
-    )
+    ),
+    width = 12
     )
 )
 
 
-ui_model_result <- mainPanel(
+ui_model_result <- tabItem(
+  "model_result",
   tabsetPanel(
     tabPanel("Summary", ui_model_result_summary), 
     tabPanel("Prediction and accruracy", ui_model_result_prediction)
