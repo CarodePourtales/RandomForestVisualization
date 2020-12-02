@@ -288,7 +288,7 @@ server <- function(input, output, session) {
               indices.test <- (ntr+1):nobs
               dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
               dftest$prediction <- model.prediction()
-              p <- plot(data_read()[indices.test ,c(input$axis_x, input$axis_y)], col = dftest$prediction, pch = 20, cex = 3) 
+              p <- plot(data_read()[indices.test ,c(input$axis_x, input$axis_y)], col = dftest$prediction, pch = 20, cex = 3, main=paste("Predictions")) 
               print(p)
               })
             
@@ -300,7 +300,7 @@ server <- function(input, output, session) {
               dftest$prediction = model.prediction()
               dftrue = dftest[dftest$prediction!=data_read()[indices.test ,input$class],]
               if (nrow(dftrue)) {
-                p <- plot(dftrue[1:nrow(dftrue) ,c(input$axis_x, input$axis_y)], col = dftrue$prediction, pch = 20, cex = 3) 
+                p <- plot(dftrue[1:nrow(dftrue) ,c(input$axis_x, input$axis_y)], col = dftrue$prediction, pch = 20, cex = 3, main=paste("Missclassified predictions")) 
                 print(p)}
         })
         })
