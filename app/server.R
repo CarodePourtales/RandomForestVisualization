@@ -168,7 +168,7 @@ server <- function(input, output, session) {
       indices.train <- 1:ntr # 
       indices.test <- (ntr+1):nobs
       model <-reactive({randomForest(as.factor(data_read()[indices.train,input$class]) ~ ., 
-                                     data=data_read()[indices.train ,c(input$predictors, input$class)],
+                                     data=data_read()[indices.train ,c(input$predictors)],
                                      mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), 
                                      nodesize=as.integer(input$nodesize))})
       model.prediction <- reactive({predict(model(), newdata = data_read()[indices.test ,c(input$predictors, input$class)])})
@@ -213,6 +213,7 @@ server <- function(input, output, session) {
       observe({
         output$accuracy_rate <- renderValueBox({
           model.accuracyrate = (model.confusion_matrix()[1,1] + model.confusion_matrix()[2,2]) / (model.confusion_matrix()[1,1] + model.confusion_matrix()[1,2] + model.confusion_matrix()[2,1] +model.confusion_matrix()[2,2])
+          model.accuracyrate =  round(model.accuracyrate, 3)
           valueBox(
             "Accuracy rate",
             model.accuracyrate,
@@ -225,6 +226,7 @@ server <- function(input, output, session) {
       observe({
         output$sensitivity <- renderValueBox({
           model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
+          model.sensitivity =  round(model.sensitivity, 3)
           valueBox(
             "Sensitivity",
             model.sensitivity,
@@ -237,6 +239,7 @@ server <- function(input, output, session) {
       observe({
         output$specificity <- renderValueBox({
           model.specificity = model.confusion_matrix()[1,1]/(model.confusion_matrix()[1,1] + model.confusion_matrix()[2,1])
+          model.specificity =  round(model.specificity, 3)
           valueBox(
             "Specificity",
             model.specificity,
@@ -249,6 +252,7 @@ server <- function(input, output, session) {
       observe({
         output$precision <- renderValueBox({
           model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
+          model.precision =  round(model.precision, 3)
           valueBox(
             "Precision",
             model.precision,
@@ -264,6 +268,7 @@ server <- function(input, output, session) {
           model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
           
           model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
+          model.fmesure =  round(model.fmesure, 3)
           valueBox(
             "F measure",
             model.fmesure,

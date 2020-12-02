@@ -4,9 +4,9 @@ ui_model_result_summary <- sidebarLayout(
   sidebarPanel(
     uiOutput('class'),
     uiOutput('predictors'),
-    sliderInput('ntree','Number of trees',min=10,max=1000,value=200,step=10),
-    sliderInput('mtry','Number of trial at each node to choose one',min=1,max=20,value=2,step=1),
-    sliderInput('nodesize','Maximal depth',min=1,max=50,value=10,step=1),
+    sliderInput('ntree','Number of trees to grow',min=10,max=1000,value=200,step=10),
+    sliderInput('mtry','Number of variables randomly sampled as candidates at each split',min=1,max=20,value=2,step=1),
+    sliderInput('nodesize','Minimum size of terminal nodes',min=1,max=50,value=10,step=1),
     actionButton(
       inputId = "submit_loc",
       label = "Submit"
