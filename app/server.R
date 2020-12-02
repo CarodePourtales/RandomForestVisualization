@@ -167,77 +167,128 @@ server <- function(input, output, session) {
       ntr <- 0.8*nobs
       indices.train <- 1:ntr # 
       indices.test <- (ntr+1):nobs
-      model <-reactive({randomForest(as.factor(data_read()[indices.train,input$class]) ~ ., data=data_read()[indices.train ,c(input$predictors, input$class)],mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), nodesize=as.integer(input$nodesize))})
+      model <-reactive({randomForest(as.factor(data_read()[indices.train,input$class]) ~ ., 
+                                     data=data_read()[indices.train ,c(input$predictors)],
+                                     mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), 
+                                     nodesize=as.integer(input$nodesize))})
       model.prediction <- reactive({predict(model(), newdata = data_read()[indices.test ,c(input$predictors, input$class)])})
       model.confusion_matrix <- reactive({table(model.prediction(), data_read()[indices.test ,input$class])})
       
-      output$randomForest <- renderPrint({
-        print(model())
+      pred_influence <- function(pred, class) {
+        do.call("partialPlot", list(x = model(), pred.data = data_read(), x.var = pred, which.class = class, main=paste("Partial Dependence on",  pred, "with class", class)))
+      }
+      
+      predictors_influence <- reactive ({
+        data <- data_read()
+        vars = colnames(data[,c(input$predictors)])
+        classes = c(unique(data[,input$class]))
+        op <- par(mfrow=c(length(vars),length(classes)))
+        for (var in vars) {
+          for (class in classes) {
+              pred_influence(var, class)
+          }
+        } 
+        par(op)
       })
       
-      output$confusionmatrix <- renderPrint({
-        model.confusion_matrix()
+      observe({
+        output$randomForest <- renderPrint({
+          print(model())
+        })
+      })
+
+      
+      observe({
+        output$influence <- renderPlot ({
+          predictors_influence()
+        })
       })
       
-      
-      output$accuracy_rate <- renderValueBox({
-        model.accuracyrate = (model.confusion_matrix()[1,1] + model.confusion_matrix()[2,2]) / (model.confusion_matrix()[1,1] + model.confusion_matrix()[1,2] + model.confusion_matrix()[2,1] +model.confusion_matrix()[2,2])
-        valueBox(
-          "Accuracy rate",
-          model.accuracyrate,
-          icon = icon("credit-card")
-        )
+      observe({
+        output$confusionmatrix <- renderPrint({
+          model.confusion_matrix()
+        })
       })
       
-      output$sensitivity <- renderValueBox({
-        model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
-        valueBox(
-          "Sensitivity",
-          model.sensitivity,
-          icon = icon("credit-card")
-        )
+      observe({
+        output$accuracy_rate <- renderValueBox({
+          model.accuracyrate = (model.confusion_matrix()[1,1] + model.confusion_matrix()[2,2]) / (model.confusion_matrix()[1,1] + model.confusion_matrix()[1,2] + model.confusion_matrix()[2,1] +model.confusion_matrix()[2,2])
+          model.accuracyrate =  round(model.accuracyrate, 3)
+          valueBox(
+            "Accuracy rate",
+            model.accuracyrate,
+            width = 2,
+            icon = icon("credit-card")
+          )
+        })
       })
       
-      output$specificity <- renderValueBox({
-        model.specificity = model.confusion_matrix()[1,1]/(model.confusion_matrix()[1,1] + model.confusion_matrix()[2,1])
-        valueBox(
-          "Specificity",
-          model.specificity,
-          icon = icon("credit-card")
-        )
+      observe({
+        output$sensitivity <- renderValueBox({
+          model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
+          model.sensitivity =  round(model.sensitivity, 3)
+          valueBox(
+            "Sensitivity",
+            model.sensitivity,
+            width = 2,
+            icon = icon("credit-card")
+          )
+        })
       })
       
-      output$precision <- renderValueBox({
-        model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
-        valueBox(
-          "Precision",
-          model.precision,
-          icon = icon("credit-card")
-        )
+      observe({
+        output$specificity <- renderValueBox({
+          model.specificity = model.confusion_matrix()[1,1]/(model.confusion_matrix()[1,1] + model.confusion_matrix()[2,1])
+          model.specificity =  round(model.specificity, 3)
+          valueBox(
+            "Specificity",
+            model.specificity,
+            width = 2,
+            icon = icon("credit-card")
+          )
+        })
       })
       
-      output$fmesure <- renderValueBox({
-        model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
-        model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
-        
-        model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
-        valueBox(
-          "F measure",
-          model.fmesure,
-          icon = icon("credit-card")
-        )
+      observe({
+        output$precision <- renderValueBox({
+          model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
+          model.precision =  round(model.precision, 3)
+          valueBox(
+            "Precision",
+            model.precision,
+            width = 2,
+            icon = icon("credit-card")
+          )
+        })
+      })
+      
+      observe({
+        output$fmesure <- renderValueBox({
+          model.precision = model.confusion_matrix()[2,2]/(model.confusion_matrix()[2,1] + model.confusion_matrix()[2,2])
+          model.sensitivity = model.confusion_matrix()[2,2]/(model.confusion_matrix()[1,2] + model.confusion_matrix()[2,2])
+          
+          model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
+          model.fmesure =  round(model.fmesure, 3)
+          valueBox(
+            "F measure",
+            model.fmesure,
+            width = 2,
+            icon = icon("credit-card")
+          )
+        })
       })
       
       observeEvent(
           eventExpr = input[["submit_loc2"]],
           handlerExpr = { 
+            
             output$prediction <- renderPlot({
               nobs <- nrow(data_read())
               ntr <- 0.8*nobs
               indices.test <- (ntr+1):nobs
               dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
               dftest$prediction <- model.prediction()
-              p <- plot(data_read()[indices.test ,c(input$axis_x, input$axis_y)], col = dftest$prediction, pch = 20, cex = 3) 
+              p <- plot(data_read()[indices.test ,c(input$axis_x, input$axis_y)], col = dftest$prediction, pch = 20, cex = 3, main=paste("Predictions")) 
               print(p)
               })
             
@@ -249,7 +300,7 @@ server <- function(input, output, session) {
               dftest$prediction = model.prediction()
               dftrue = dftest[dftest$prediction!=data_read()[indices.test ,input$class],]
               if (nrow(dftrue)) {
-                p <- plot(dftrue[1:nrow(dftrue) ,c(input$axis_x, input$axis_y)], col = dftrue$prediction, pch = 20, cex = 3) 
+                p <- plot(dftrue[1:nrow(dftrue) ,c(input$axis_x, input$axis_y)], col = dftrue$prediction, pch = 20, cex = 3, main=paste("Missclassified predictions")) 
                 print(p)}
         })
         })
