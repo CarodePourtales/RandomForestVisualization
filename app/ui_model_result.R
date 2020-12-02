@@ -13,10 +13,15 @@ ui_model_result_summary <- sidebarLayout(
     )
   ),
   mainPanel(
-    h2("Model summary"),
-    verbatimTextOutput("randomForest"),
-    fluidRow(
-      plotOutput("influence"),
+    tabsetPanel(
+      tabPanel("Model Summary",
+              h2("Model summary"),
+              verbatimTextOutput("randomForest")
+      ),
+      tabPanel("Predictors' importance",
+               h2("Predictors importance on the class"),
+              plotOutput("influence")
+      )
     )
   )
 )
@@ -32,26 +37,20 @@ ui_model_result_prediction <- sidebarLayout(
   ),
   mainPanel(
     fluidRow(
-      h2("Confusion matrix"),
-      verbatimTextOutput("confusionmatrix")),
-    fluidRow(
-      h2("Some measures")),
-    fluidRow(
       valueBoxOutput("accuracy_rate",
-        width = 2),
+        width = 3),
       valueBoxOutput("sensitivity",
-        width = 2),
+        width = 3),
       valueBoxOutput("specificity",
-        width = 2),
+        width = 3)),
+    fluidRow(
       valueBoxOutput("precision",
-        width = 2),
+        width = 3),
       valueBoxOutput("fmesure",
-        width = 2)
-      ),
+        width = 3)),
     fluidRow(
       splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
-    ),
-    width = 15
+    )
     )
 )
 
