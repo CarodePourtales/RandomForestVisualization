@@ -45,7 +45,65 @@ server <- function(input, output, session) {
   
   # ===== METHOD
   
-  # OVERVIEW ========
+  # ==== DATA 
+  observe({
+    choices <- names(data_read())
+    updateSelectInput(session, "data_cols", choices = choices, selected = choices)
+  })
+  
+  observe({
+    data <- data_read()
+    output$tbl <- DT::renderDataTable(data[, input$data_cols], options = list(lengthChange = FALSE), width = 'auto')
+  })
+  
+  # ****
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "plot_box_vars", choices = choices, selected = choices)
+  })
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "plot_hist_var", choices = choices)
+  })
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "plot_scatter_x", choices = choices)
+  })
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "plot_scatter_y", choices = choices)
+  })
+  
+  observe({
+    output$plot_out <- renderPlot(
+      switch(
+        input$plot_type,
+        "boxplot" = {
+          boxplot(data_read()[, input$plot_box_vars])
+        },
+        "histogram" = {
+          hist(data_read()[, input$plot_hist_var], 
+               main = paste("Histogram for", input$plot_hist_var),
+               xlab = input$plot_hist_var, freq = (input$plot_hist_freq == "Frequency"))
+        },
+        "scatter" = {
+          df <- data_read()
+          xlab <- input$plot_scatter_x
+          ylab <- input$plot_scatter_y
+          
+          plot(x = df[, xlab], y = df[, ylab], xlab = xlab, ylab = ylab)
+        }
+      )
+    )
+  })
+  
+  # DATA ====
+  
+  # ==== OVERVIEW
   # https://github.com/saurfang/shinyCorrplot/
   
   # Correlation
@@ -140,15 +198,9 @@ server <- function(input, output, session) {
     data <- apply(data_read()[predictors], 2, summary)
     return(as.data.frame(data))
   })
-  
-  #====== DATA
-  
-  # voir si il est possible de réduire la largeur de la table
-  output$tbl <- renderDT(data_read(), options = list(lengthChange = FALSE), width = 'auto')
-  
-  #====== OVERVIEW
-  
-  # RESULT ==============
+  # OVERVIEW ====
+
+  # ==== RESULT
   observe({
     choices <- setdiff(names(data_read()), input$class)
     updateSelectInput(session, "predictors", choices = choices)
@@ -159,11 +211,11 @@ server <- function(input, output, session) {
   })
   
   observe({
-    updateSelectInput(session, "axis_x", choices = names(data_read()))
+    updateSelectInput(session, "axis_x", choices = numericColumns())
   })
   
   observe({
-    updateSelectInput(session, "axis_y", choices = names(data_read()))
+    updateSelectInput(session, "axis_y", choices = numericColumns())
   })
   
   model <-reactive({
@@ -354,5 +406,5 @@ server <- function(input, output, session) {
     })
   })
   
-  #========== RESULT
+  # RESULT ====
 }
