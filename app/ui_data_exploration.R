@@ -21,31 +21,44 @@ ui_data_loading <- sidebarLayout(
 )
 
 ui_data_summary <- sidebarLayout(
-  sidebarPanel(),
-  mainPanel()
+  sidebarPanel(
+    selectInput("distrib_type", "Plot type", c("boxplot", "histogram")),
+    
+    conditionalPanel("input.distrib_type == 'boxplot'",
+                     selectInput("distrib_box_form", "Form", c("box", "violin")),
+                     helpText("Choose the variable to plot. Drag and drop to reorder."),
+                     selectizeInput("distrib_box_vars", "", c("Loading..."), multiple = T, 
+                                    options = list(plugins = list("remove_button", "drag_drop")))
+    ),
+    conditionalPanel("input.distrib_type == 'histogram'",
+                     helpText("Choose the variable to plot. Drag and drop to reorder."),
+                     selectizeInput("distrib_hist_vars", "", c("Loading..."), multiple = T, 
+                                    options = list(plugins = list("remove_button", "drag_drop"))),
+                     selectInput("distrib_hist_freq", "Frequency/Density", c("Frequency", "Density")),
+                     selectInput("distrib_hist_space", "Continuous/Discrete", c("Continous", "Discrete"))
+    )
+  ),
+  mainPanel(
+    plotOutput("distrib_out")
+  )
 )
 
 ui_data_plot <- sidebarLayout(
   sidebarPanel(
-    # helpText("Choose plot types. Drag and drop to reorder."),
-    # selectizeInput("plot_types", "", c("boxplot", "histogram"), multiple = T, options = list(plugins = list("remove_button"))),
-    selectInput("plot_type", "Plot type", c("boxplot", "histogram", "scatter")),
+    selectInput("plot_type", "Plot type", c("Scatter", "2D Histogram", "Hexbin", "2D Density")),
     
-    conditionalPanel("input.plot_type == 'boxplot'",
-                     helpText("Choose the variable to plot. Drag and drop to reorder."),
-                     selectizeInput("plot_box_vars", "", c("Loading..."), multiple = T, 
-                                    options = list(plugins = list("remove_button", "drag_drop")))
+    selectInput("plot_scatter_x", "x-axis", c("Loading...")),
+    selectInput("plot_scatter_y", "y-axis", c("Loading...")),
+    
+    conditionalPanel("input.plot_type == 'Scatter'",
+                     selectInput("plot_scatter_clr", "Color by variable", c("Loading...")),
     ),
-    conditionalPanel("input.plot_type == 'histogram'",
-                     helpText("Choose the variable to plot. Drag and drop to reorder."),
-                     selectInput("plot_hist_var", "Variable", c("Loading...")),
-                     selectInput("plot_hist_freq", "Frequency/Density", c("Frequency", "Density"))
+    conditionalPanel("input.plot_type == '2D Density'",
+                     selectInput("plot_density_geom", "Geometry", c("polygon", "raster"))
     ),
-    conditionalPanel("input.plot_type == 'scatter'",
-                     helpText("Choose the variable to plot. Drag and drop to reorder."),
-                     selectInput("plot_scatter_x", "x-axis", c("Loading...")),
-                     selectInput("plot_scatter_y", "y-axis", c("Loading..."))
+    conditionalPanel("input.plot_type == 'Hexbin' || input.plot_type == '2D Histogram'",
     )
+    
   ),
   mainPanel(
     plotOutput("plot_out")

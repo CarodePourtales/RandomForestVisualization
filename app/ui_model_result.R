@@ -40,7 +40,7 @@ ui_model_result_prediction <- sidebarLayout(
     fluidRow(
       splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
     )
-    )
+  )
 )
 
 
