@@ -47,7 +47,9 @@ ui_model_tree <-
     fluidRow(
       h2("Tree with rpart library"),
       plotOutput("tree")
-    )
+    ),
+    width = 12
+    
 )
 
 ui_model_result <- tabItem(

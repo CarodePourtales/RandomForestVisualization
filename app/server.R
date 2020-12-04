@@ -257,7 +257,7 @@ server <- function(input, output, session) {
     observe({
       output$tree <- renderPlot ({
         tryCatch({
-          print(rpart.plot(model_rpart(), tweak = 1.5))
+          rpart.plot(model_rpart(), tweak = 1.5)
         }, error = function(e){
           message("Waiting for predictors...")
         })
