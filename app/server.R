@@ -345,6 +345,19 @@ server <- function(input, output, session) {
     }
   })
   
+  model_rpart <-reactive({
+    df <- data_read()
+    
+    nobs <- nrow(df)
+    ntr <- input$split *nobs
+    indices.train <- 1:ntr # 
+    
+    y_train <- as.factor(df[indices.train,input$class]) ~ .
+    x_train <- df[indices.train ,c(input$predictors)]
+    
+    rpart(y_train, data = x_train, method = "class")
+  })
+  
   model.prediction <- reactive({
     df <- data_read()
     nobs <- nrow(df)
@@ -388,6 +401,16 @@ server <- function(input, output, session) {
       })
     })
 
+    observe({
+      output$tree <- renderPlot ({
+        tryCatch({
+          rpart.plot(model_rpart(), tweak = 1.5)
+        }, error = function(e){
+          message("Waiting for predictors...")
+        })
+      })
+    })
+    
     observe({
       output$confusionmatrix <- renderPrint({
         tryCatch({
@@ -473,21 +496,26 @@ server <- function(input, output, session) {
   
   observe({ 
     
-    output$prediction <- renderPlot({
+    output$wellclassified_prediction <- renderPlot({
       tryCatch({
         nobs <- nrow(data_read())
         ntr <- input$split * nobs
         indices.test <- (ntr+1):nobs
         dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
-        dftest$prediction <- model.prediction()
-        p <- ggplot(dftest, aes(x=dftest[, input$axis_x], y=dftest[, input$axis_y], color = factor(dftest[, input$class]) )) +
-          labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Predictions")+ 
-          geom_point() 
-        print(p)
+        dftest$prediction = model.prediction()
+        dftrue = dftest[dftest$prediction==dftest[,input$class],]
+        if (nrow(dftrue)>0) {
+          p <- ggplot(dftrue, aes(x=dftrue[, input$axis_x], y=dftrue[, input$axis_y], color = factor(dftrue[, input$class]) )) +
+            labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Well-classified Predictions")+
+            geom_point()
+          print(p)}
       }, error = function(e){
-        print(e)
+        message("Waiting for model...")
       })
     })
+  })
+    
+  observe({ 
     
     output$missclassified_prediction <- renderPlot({
       tryCatch({
@@ -496,29 +524,44 @@ server <- function(input, output, session) {
         indices.test <- (ntr+1):nobs
         dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
         dftest$prediction = model.prediction()
-        dftrue = dftest[dftest$prediction!=dftest[,input$class],]
-        if (nrow(dftrue)>0) {
-          p <- ggplot(dftrue, aes(x=dftrue[, input$axis_x], y=dftrue[, input$axis_y], color = factor(dftrue[, input$class]) )) +
+        dffalse = dftest[dftest$prediction!=dftest[,input$class],]
+        if (nrow(dffalse)>0) {
+          p <- ggplot(dffalse, aes(x=dffalse[, input$axis_x], y=dffalse[, input$axis_y], color = factor(dffalse$prediction) )) +
             labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Missclassified Predictions")+
             geom_point()
           print(p)}
-        }, error = function(e){
-          message("Waiting for model...")
-        })
+      }, error = function(e){
+        message("Waiting for model...")
       })
+    })
   })
   
-  pred_influence <- function(pred, class){
-    do.call("partialPlot", list(x = model(), pred.data = data_read(),
-                                x.var = pred, which.class = class,
-                                main=paste("Partial Dependence on",  pred, "with class", class)))
-  }
   
   observe({
     updateSelectInput(session, "dtree_par2vars", choices = input$predictors)
   })
   
+  pred_influence <- function(pred, class) {
+    do.call("partialPlot", list(x = model(), pred.data = data_read(), 
+                                x.var = pred, which.class = class, 
+                                main=paste("Partial Dependence on",  pred, "with class", class)))
+  }
+  
   predictors_influence <- reactive ({
+    data <- data_read()
+    vars = c(input$predictors)
+    classes = c(unique(data[, input$class]))
+    
+    op <- par(mfrow=c(length(vars),length(classes)), mar=c(1,1,1,1))
+    for (var in vars) {
+      for (class in classes) {
+        pred_influence(var, class)
+      }
+    } 
+    par(op)
+  })
+  
+  predictors_influence_static <- reactive ({
     data <- data_read()
     vars = c(input$predictors)
     classes = c(unique(data[, input$class]))
@@ -531,12 +574,17 @@ server <- function(input, output, session) {
   
   observe({
     output$influence <- renderPlot ({
-      predictors_influence()
-      # tryCatch({
-      #   predictors_influence()
-      # }, error = function(e){
-      #   message("Waiting for predictors...")
-      # })
+      tryCatch({
+        if(input$dtree_type == 'dynamic'){
+          if(input$dtree_package == 'randomForest'){
+            predictors_influence()
+          }
+        } else {
+            predictors_influence_static()
+        }
+      }, error = function(e){
+        message("Waiting for predictors...")
+      })
     })
   })
   
