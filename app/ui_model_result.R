@@ -48,10 +48,7 @@ ui_model_result_summary <- sidebarLayout(
                                 selectizeInput("dtree_par2vars", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
                     ),
               plotOutput("influence")
-      ),
-      tabPanel("Decision Tree",
-               h2("Visualise the decision making process"),
-               plotOutput("dtree"))
+      )
     )
   )
 )
@@ -62,8 +59,13 @@ ui_model_result_prediction <- sidebarLayout(
     selectInput("axis_y","Select variable y : ", choices = c("Loading...")),
   ),
   mainPanel(
-    fluidRow(
-      splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
+    tabsetPanel(
+      tabPanel("Prediction Summary",
+        splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
+      ),
+      tabPanel("Decision Tree",
+               h2("Visualise the decision making process"),
+               plotOutput("dtree"))
     )
   )
 )
