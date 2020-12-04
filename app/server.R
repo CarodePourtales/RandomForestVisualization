@@ -496,21 +496,26 @@ server <- function(input, output, session) {
   
   observe({ 
     
-    output$prediction <- renderPlot({
+    output$wellclassified_prediction <- renderPlot({
       tryCatch({
         nobs <- nrow(data_read())
         ntr <- input$split * nobs
         indices.test <- (ntr+1):nobs
         dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
-        dftest$prediction <- model.prediction()
-        p <- ggplot(dftest, aes(x=dftest[, input$axis_x], y=dftest[, input$axis_y], color = factor(dftest[, input$class]) )) +
-          labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Predictions")+ 
-          geom_point() 
-        print(p)
+        dftest$prediction = model.prediction()
+        dftrue = dftest[dftest$prediction==dftest[,input$class],]
+        if (nrow(dftrue)>0) {
+          p <- ggplot(dftrue, aes(x=dftrue[, input$axis_x], y=dftrue[, input$axis_y], color = factor(dftrue[, input$class]) )) +
+            labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Well-classified Predictions")+
+            geom_point()
+          print(p)}
       }, error = function(e){
-        print(e)
+        message("Waiting for model...")
       })
     })
+  })
+    
+  observe({ 
     
     output$missclassified_prediction <- renderPlot({
       tryCatch({
@@ -519,16 +524,16 @@ server <- function(input, output, session) {
         indices.test <- (ntr+1):nobs
         dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
         dftest$prediction = model.prediction()
-        dftrue = dftest[dftest$prediction!=dftest[,input$class],]
-        if (nrow(dftrue)>0) {
-          p <- ggplot(dftrue, aes(x=dftrue[, input$axis_x], y=dftrue[, input$axis_y], color = factor(dftrue[, input$class]) )) +
+        dffalse = dftest[dftest$prediction!=dftest[,input$class],]
+        if (nrow(dffalse)>0) {
+          p <- ggplot(dffalse, aes(x=dffalse[, input$axis_x], y=dffalse[, input$axis_y], color = factor(dffalse$prediction) )) +
             labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Missclassified Predictions")+
             geom_point()
           print(p)}
-        }, error = function(e){
-          message("Waiting for model...")
-        })
+      }, error = function(e){
+        message("Waiting for model...")
       })
+    })
   })
   
   

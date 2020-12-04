@@ -61,7 +61,7 @@ ui_model_result_prediction <- sidebarLayout(
   mainPanel(
     tabsetPanel(
       tabPanel("Prediction Summary",
-        splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
+        splitLayout(cellWidths = c("50%", "50%"), plotOutput("wellclassified_prediction"), plotOutput("missclassified_prediction"))
       ),
       tabPanel("Decision Tree",
                h2("Visualise the decision making process"),
