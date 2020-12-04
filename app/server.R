@@ -252,7 +252,7 @@ server <- function(input, output, session) {
     })
     
     make_value_box <- function(title, subtitle){
-      return(valueBox(title, subtitle, width = 2, icon = icon("credit-card")))
+      return(valueBox(title, subtitle, width = 2, icon = icon("search",lib = "glyphicon")))
     }
     
     observe({
@@ -261,9 +261,9 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.accuracyrate = (cm[1,1] + cm[2,2]) / (cm[1,1] + cm[1,2] + cm[2,1] +cm[2,2])
           model.accuracyrate =  round(model.accuracyrate, 3)
-          make_value_box("Accuracy rate", model.accuracyrate)
+          make_value_box(tags$p("Accuracy", style = "font-size: 50%;"), tags$p(model.accuracyrate, style = "font-size: 170%;"))
         }, error = function(e){
-          make_value_box("Accuracy rate", "Waiting for model...")
+          make_value_box(tags$p("Accuracy", style = "font-size: 50%;"), "Waiting for model...")
         })
       })
     })
@@ -274,9 +274,9 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.sensitivity = cm[2,2]/(cm[1,2] + cm[2,2])
           model.sensitivity =  round(model.sensitivity, 3)
-          make_value_box("Sensitivity", model.sensitivity)
+          make_value_box(tags$p("Sensitivity", style = "font-size: 50%;"), tags$p(model.sensitivity, style = "font-size: 170%;"))
         }, error = function(e){
-            make_value_box("Sensitivity", "Waiting for model...")
+            make_value_box(tags$p("Sensitivity", style = "font-size: 50%;"), "Waiting for model...")
         })
       })
     })
@@ -287,9 +287,9 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.specificity = cm[1,1]/(cm[1,1] + cm[2,1])
           model.specificity =  round(model.specificity, 3)
-          make_value_box("Specificity", model.specificity)
+          make_value_box(tags$p("Specificity", style = "font-size: 50%;"), tags$p(model.specificity, style = "font-size: 160%;"))
         }, error = function(e){
-          make_value_box("Specificity", "Waiting for model...")
+          make_value_box(tags$p("Specificity", style = "font-size: 50%;"), "Waiting for model...")
         })
       })
     })
@@ -300,9 +300,9 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.precision = cm[2,2]/(cm[2,1] + cm[2,2])
           model.precision =  round(model.precision, 3)
-          make_value_box("Precision", model.precision)
+          make_value_box(tags$p("Precision", style = "font-size: 50%;"), tags$p(model.precision, style = "font-size: 170%;"))
         }, error = function(e){
-          make_value_box("Precision", "Waiting for model...")
+          make_value_box(tags$p("Precision", style = "font-size: 50%;"), "Waiting for model...")
         })
       })
     })
@@ -316,9 +316,9 @@ server <- function(input, output, session) {
           
           model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
           model.fmesure =  round(model.fmesure, 3)
-          make_value_box("F-Measure", model.fmesure)
+          make_value_box(tags$p("F-Measure", style = "font-size: 50%;"), tags$p(model.fmesure, style = "font-size: 170%;"))
         }, error = function(e){
-          make_value_box("F-Measure", "Waiting for model...")
+          make_value_box(tags$p("F-Measure", style = "font-size: 50%;"), "Waiting for model...")
         })
       })
     })
@@ -332,7 +332,9 @@ server <- function(input, output, session) {
       indices.test <- (ntr+1):nobs
       dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
       dftest$prediction <- model.prediction()
-      p <- plot(data_read()[indices.test ,c(input$axis_x, input$axis_y)], col = dftest$prediction, pch = 20, cex = 3, main=paste("Predictions")) 
+      p <- ggplot(dftest, aes(x=dftest[, input$axis_x], y=dftest[, input$axis_y], color = factor(dftest[, input$class]) )) +
+        labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Predictions")+ 
+        geom_point() 
       print(p)
     })
     
@@ -342,9 +344,11 @@ server <- function(input, output, session) {
       indices.test <- (ntr+1):nobs
       dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
       dftest$prediction = model.prediction()
-      dftrue = dftest[dftest$prediction!=data_read()[indices.test ,input$class],]
-      if (nrow(dftrue)) {
-        p <- plot(dftrue[1:nrow(dftrue) ,c(input$axis_x, input$axis_y)], col = dftrue$prediction, pch = 20, cex = 3, main=paste("Missclassified predictions")) 
+      dftrue = dftest[dftest$prediction!=dftest[,input$class],]
+      if (nrow(dftrue)>0) {
+        p <- ggplot(dftrue, aes(x=dftrue[, input$axis_x], y=dftrue[, input$axis_y], color = factor(dftrue[, input$class]) )) +
+          labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Missclassified Predictions")+
+          geom_point()
         print(p)}
     })
   })
