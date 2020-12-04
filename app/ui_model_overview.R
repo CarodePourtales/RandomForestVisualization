@@ -43,7 +43,7 @@ ui_model_correlation <- sidebarLayout(
                                   0.95, 0, 1, 0.01)),
     tags$hr(),
     helpText("Choose the variables to display. Drag and drop to reorder."), 
-    selectizeInput("variables", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
+    selectizeInput("variables", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop")))
   ),
   
   mainPanel(
@@ -62,7 +62,7 @@ ui_model_correlation <- sidebarLayout(
   
 ui_model_predictors <- sidebarLayout(
   sidebarPanel(
-    selectizeInput("ui_predictors", "Select predictors", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
+    selectizeInput("ui_predictors", "Select predictors", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop")))
   ),
   mainPanel(
     DT::dataTableOutput("predictors_summary")
