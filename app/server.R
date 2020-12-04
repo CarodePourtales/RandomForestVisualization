@@ -570,8 +570,8 @@ server <- function(input, output, session) {
   observe({
     output$influence <- renderPlot ({
       tryCatch({
-        if(input$dtree_type == "dynamic"){
-          if(input$dtree_package == "randomForest"){
+        if(input$dtree_type == 'dynamic'){
+          if(input$dtree_package == 'randomForest'){
             predictors_influence()
           }
         } else {
