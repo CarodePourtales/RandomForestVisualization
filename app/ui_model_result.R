@@ -42,10 +42,18 @@ ui_model_result_prediction <- sidebarLayout(
     )
 )
 
+ui_model_tree <- 
+  mainPanel(
+    fluidRow(
+      h2("Tree with rpart library"),
+      plotOutput("tree")
+    )
+)
 
 ui_model_result <- tabItem(
   "model_result",
   tabsetPanel(
     tabPanel("Summary", ui_model_result_summary), 
-    tabPanel("Prediction and accruracy", ui_model_result_prediction)
+    tabPanel("Prediction and accruracy", ui_model_result_prediction),
+    tabPanel("Tree structure", ui_model_tree)
   ))

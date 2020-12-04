@@ -8,6 +8,8 @@ library(ggfortify)
 library(MASS)
 library(dplyr)
 library(corrplot)
+library(rpart)
+library(rpart.plot)
 
 source("ui.R")
 source("server.R")

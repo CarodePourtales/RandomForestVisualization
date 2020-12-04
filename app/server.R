@@ -176,6 +176,19 @@ server <- function(input, output, session) {
                     nodesize=as.integer(input$nodesize))
   })
   
+  model_rpart <-reactive({
+    df <- data_read()
+    
+    nobs <- nrow(df)
+    ntr <- input$split *nobs
+    indices.train <- 1:ntr # 
+    
+    y_train <- as.factor(df[indices.train,input$class]) ~ .
+    x_train <- df[indices.train ,c(input$predictors)]
+    
+    rpart(y_train, data = x_train, method = "class")
+  })
+  
   model.prediction <- reactive({
     nobs <- nrow(data_read())
     ntr <- input$split *nobs
@@ -235,6 +248,16 @@ server <- function(input, output, session) {
       output$influence <- renderPlot ({
         tryCatch({
           predictors_influence()
+        }, error = function(e){
+          message("Waiting for predictors...")
+        })
+      })
+    })
+    
+    observe({
+      output$tree <- renderPlot ({
+        tryCatch({
+          print(rpart.plot(model_rpart(), tweak = 1.5))
         }, error = function(e){
           message("Waiting for predictors...")
         })
