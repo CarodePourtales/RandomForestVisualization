@@ -8,7 +8,7 @@ server <- function(input, output, session) {
     if (is.null(data))
       return(NULL)
     df <- read.csv(data$datapath, header=input$header, sep=input$sep, 
-                   quote=input$quote)
+                   quote=input$quote, check.names = TRUE)
     # clean up data frame to set types appropriately
     return(df)
   }
@@ -161,86 +161,88 @@ server <- function(input, output, session) {
     updateSelectInput(session, "axis_y", choices = names(data_read()))
   })
   
-  model <-reactive({
+  observe({
+    updateSliderInput(session, "ktree", max = as.integer(input$ntree))
+  })
+  
+  model = reactive({
     df <- data_read()
     
     nobs <- nrow(df)
-    ntr <- input$split *nobs
-    indices.train <- 1:ntr # 
+    ntr <- input$split * nobs
+    indices.train <- c(1:ntr) # 
     
-    y_train <- as.factor(df[indices.train,input$class]) ~ .
-    x_train <- df[indices.train ,c(input$predictors)]
-
-    randomForest(y_train, data = x_train,
-                    mtry = as.integer(input$mtry), ntree = as.integer(input$ntree), 
-                    nodesize=as.integer(input$nodesize))
+    y_train <- as.factor(df[indices.train, input$class]) ~ .
+    x_train <<- df[indices.train, c(input$predictors)]
+    
+    if(input$dtree_type == "dynamic"){
+      
+      if(input$dtree_package == "randomForest"){
+        return(
+          randomForest(y_train, x_train,
+                      mtry = as.integer(input$mtry), ntree = as.integer(input$ntree),
+                      nodesize=as.integer(input$nodesize))
+        )
+      }
+      
+      if(input$dtree_package == "cforest"){
+        return(
+          train(y_train, x_train, method = "cforest", controls = cforest_classical(
+                 ntree = as.integer(input$ntree), mtry = as.integer(input$mtry), 
+                 maxdepth = as.integer(input$maxdepth))
+          )$finalModel
+        )
+      }
+    }else{
+      return(
+        rpart(y_train, x_train, method = input$method, control = rpart.control(cp = input$cp))
+      )
+    }
   })
   
   model.prediction <- reactive({
-    nobs <- nrow(data_read())
+    df <- data_read()
+    nobs <- nrow(df)
     ntr <- input$split *nobs
     indices.test <- (ntr+1):nobs
     
-    predict(model(), newdata = data_read()[indices.test ,c(input$predictors, input$class)])
+    x_test <- df[indices.test ,c(input$predictors, input$class)]
+    
+    m <- model()
+    if(input$dtree_type == "dynamic")
+      predict(m, newdata = x_test)
+    else
+      predict(m, x_test, type = input$rpart_class)
   })
   
   model.confusion_matrix <- reactive({
-    nobs <- nrow(data_read())
+    df <- data_read()
+    nobs <- nrow(df)
     ntr <- input$split *nobs
     indices.test <- (ntr+1):nobs
     
-    table(model.prediction(), data_read()[indices.test ,input$class])
+    y_test <- df[indices.test ,input$class]
+    
+    table(model.prediction(), y_test)
   })
-  
-  
+
   observe({
     pixel2inch <- function(x, y){
       return( c(x, y) * 0.010416 )
     }
-    
-    pred_influence <- function(pred, class) {
-      do.call("partialPlot", list(x = model(), pred.data = data_read(), 
-                                  x.var = pred, which.class = class, 
-                                  main=paste("Partial Dependence on",  pred, "with class", class)))
-    }
-    
-    predictors_influence <- reactive ({
-      data <- data_read()
-      vars = c(input$predictors)
-      classes = c(unique(data[, input$class]))
-      
-      op <- par(mfrow=c(length(vars),length(classes)), mar=c(1,1,1,1))
-      for (var in vars) {
-        for (class in classes) {
-          # print(var)
-          # print(class)
-          pred_influence(var, class)
-        }
-      } 
-      par(op)
-    })
-    
+
     observe({
       output$randomForest <- renderPrint({
-        # print(model())
-        tryCatch({
-          print(model())
-        }, error = function(e){
-          print("You must choose at least 2 predictors...")
-        })
+        print(model())
+        
+        # tryCatch({
+        #   print(model())
+        # }, error = function(e){
+        #   print("You must choose at least 2 predictors...")
+        # })
       })
     })
-    
-    observe({
-      output$influence <- renderPlot ({
-        tryCatch({
-          predictors_influence()
-        }, error = function(e){
-          message("Waiting for predictors...")
-        })
-      })
-    })
-    
+
     observe({
       output$confusionmatrix <- renderPrint({
         tryCatch({
@@ -338,7 +340,7 @@ server <- function(input, output, session) {
           geom_point() 
         print(p)
       }, error = function(e){
-        message("Waiting for model...")
+        print(e)
       })
     })
     
@@ -361,5 +363,102 @@ server <- function(input, output, session) {
       })
   })
   
-  #========== RESULT
+  pred_influence <- function(pred, class){
+    do.call("partialPlot", list(x = model(), pred.data = data_read(),
+                                x.var = pred, which.class = class,
+                                main=paste("Partial Dependence on",  pred, "with class", class)))
+  }
+  
+  observe({
+    updateSelectInput(session, "dtree_par2vars", choices = input$predictors)
+  })
+  
+  predictors_influence <- reactive ({
+    data <- data_read()
+    vars = c(input$predictors)
+    classes = c(unique(data[, input$class]))
+    
+    do.call("partial", list(model(), pred.var = input$dtree_par2vars, 
+                            data = x_train, plot = TRUE, rug = TRUE, 
+                            chull = TRUE, plot.engine = "ggplot2")) +
+      labs(title = paste("Partial Dependence of", input$dtree_par2vars))
+  })
+  
+  observe({
+    output$influence <- renderPlot ({
+      predictors_influence()
+      # tryCatch({
+      #   predictors_influence()
+      # }, error = function(e){
+      #   message("Waiting for predictors...")
+      # })
+    })
+  })
+  
+  observe({
+    output$dtree <- renderPlot({
+      
+      m <- model()
+      
+      if(input$dtree_type == "static"){
+        rpart.plot(m, tweak = input$tweak)
+      }else{
+        
+        if(input$dtree_package == "cforest"){
+          nt <- new("BinaryTree")
+          nt@tree <- prettytree(cf@ensemble[[1]], names(cf@data@get("input")))
+          nt@data <- m@data
+          nt@response <- m@responses
+          return(plot(nt, type = "simple"))
+        }
+        
+        if(input$dtree_package == "randomForest"){
+          # Source: https://shiring.github.io/machine_learning/2017/03/16/rf_plot_ggraph
+          tree <- getTree(m, k = as.integer(input$ktree), labelVar = TRUE) %>%
+            tibble::rownames_to_column() %>%
+            # make leaf split points to NA, so the 0s won't get plotted
+            mutate(`split point` = ifelse(is.na(prediction), `split point`, NA))
+          
+          # prepare data frame for graph
+          graph_frame <- data.frame(from = rep(tree$rowname, 2),
+                                    to = c(tree$`left daughter`, tree$`right daughter`))
+          
+          # convert to graph and delete the last node that we don't want to plot
+          graph <- graph_from_data_frame(graph_frame) %>%
+            igraph::delete_vertices("0")
+          
+          # set node labels
+          V(graph)$node_label <- gsub("_", " ", as.character(tree$`split var`))
+          V(graph)$leaf_label <- as.character(tree$prediction)
+          V(graph)$split <- as.character(round(tree$`split point`, digits = 2))
+          
+          # plot
+          plot <- ggraph(graph, 'dendrogram') + 
+            theme_bw() +
+            geom_edge_link() +
+            geom_node_point() +
+            geom_node_text(aes(label = node_label), na.rm = TRUE, repel = TRUE) +
+            geom_node_label(aes(label = split), vjust = 2.5, na.rm = TRUE, fill = "white") +
+            geom_node_label(aes(label = leaf_label, fill = leaf_label), na.rm = TRUE, 
+                            repel = TRUE, colour = "white", fontface = "bold", show.legend = FALSE) +
+            theme(panel.grid.minor = element_blank(),
+                  panel.grid.major = element_blank(),
+                  panel.background = element_blank(),
+                  plot.background = element_rect(fill = "white"),
+                  panel.border = element_blank(),
+                  axis.line = element_blank(),
+                  axis.text.x = element_blank(),
+                  axis.text.y = element_blank(),
+                  axis.ticks = element_blank(),
+                  axis.title.x = element_blank(),
+                  axis.title.y = element_blank(),
+                  plot.title = element_text(size = 18))
+          
+          return(plot)
+        }
+      }
+    })
+  })
+  
+  # RESULT ====
 }
