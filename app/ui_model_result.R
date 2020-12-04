@@ -2,14 +2,32 @@
 
 ui_model_result_summary <- sidebarLayout(
   sidebarPanel(
+    selectInput("dtree_type", "Tree type", c("static", "dynamic")),
     selectInput("class","Select class : ", choices = c("Loading...")),
     selectizeInput("predictors", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button"))),
     sliderInput('split','Train rate',min=0.50,max=1.0,value=0.75,step=0.01),
-    sliderInput('ntree','Number of trees to grow',min=10,max=1000,value=200,step=10),
-    sliderInput('mtry','Number of variables randomly sampled as candidates at each split',min=1,max=20,value=2,step=1),
-    sliderInput('nodesize','Minimum size of terminal nodes',min=1,max=50,value=10,step=1),
+    
+    conditionalPanel("input.dtree_type == 'dynamic'",
+                    selectInput("dtree_package", "Using package", c("randomForest"), selected = "randomForest"),
+                    sliderInput('ntree','Number of trees to grow',min=10,max=1000,value=200,step=10),
+                    sliderInput('mtry','Number of variables randomly sampled as candidates at each split',min=1,max=20,value=2,step=1),
+                    conditionalPanel("input.dtree_package == 'randomForest'", 
+                                     sliderInput('nodesize','Minimum size of terminal nodes',min=1,max=50,value=10,step=1),
+                                     sliderInput("ktree", "Tree's number to plot", min = 1, max = Inf, value = 1, step = 1)
+                    ),
+                    conditionalPanel("input.dtree_package == 'cforest'", 
+                                     sliderInput("maxdepth", "Maximum depth of tree", min = 0, max = 10, value = 4, step = 1)
+                    ),
+    ),
+    conditionalPanel("input.dtree_type == 'static'",
+                     numericInput("cp", "Complexity parameter", min = 0.001, max = 1.0, step = 0.001, value = 0.01),
+                     selectInput("method", "Method", c("anova", "poisson", "class", "exp")),
+                     numericInput("tweak", "Adjust the size of the plot", min = 0.01, max = 100, step = 0.01, value = 1),
+                      selectInput("rpart_class", "Prediction type", c("vector", "prob", "class", "matrix"))
+    ),
   ),
   mainPanel(
+    verbatimTextOutput("warning"),
     tabsetPanel(
       tabPanel("Model Summary",
               h2("Model summary"),
@@ -24,8 +42,15 @@ ui_model_result_summary <- sidebarLayout(
       ),
       tabPanel("Predictors' importance",
                h2("Predictors importance on the class"),
+               conditionalPanel("input$dtree_type != 'dynamic' || input$dtree_package != 'randomForest'",
+                                helpText("Choose 2 variables. Drag and drop to reorder."), 
+                                selectizeInput("dtree_par2vars", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
+                    ),
               plotOutput("influence")
-      )
+      ),
+      tabPanel("Decision Tree",
+               h2("Visualise the decision making process"),
+               plotOutput("dtree"))
     )
   )
 )
