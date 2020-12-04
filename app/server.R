@@ -531,35 +531,40 @@ server <- function(input, output, session) {
       })
   })
   
-  pred_influence <- function(pred, class){
-    do.call("partialPlot", list(x = model(), pred.data = data_read(),
-                                x.var = pred, which.class = class,
-                                main=paste("Partial Dependence on",  pred, "with class", class)))
-  }
   
   observe({
     updateSelectInput(session, "dtree_par2vars", choices = input$predictors)
   })
+  
+  pred_influence <- function(pred, class) {
+    do.call("partialPlot", list(x = model(), pred.data = data_read(), 
+                                x.var = pred, which.class = class, 
+                                main=paste("Partial Dependence on",  pred, "with class", class)))
+  }
   
   predictors_influence <- reactive ({
     data <- data_read()
     vars = c(input$predictors)
     classes = c(unique(data[, input$class]))
     
-    do.call("partial", list(model(), pred.var = input$dtree_par2vars, 
-                            data = x_train, plot = TRUE, rug = TRUE, 
-                            chull = TRUE, plot.engine = "ggplot2")) +
-      labs(title = paste("Partial Dependence of", input$dtree_par2vars))
+    op <- par(mfrow=c(length(vars),length(classes)), mar=c(1,1,1,1))
+    for (var in vars) {
+      for (class in classes) {
+        # print(var)
+        # print(class)
+        pred_influence(var, class)
+      }
+    } 
+    par(op)
   })
   
   observe({
     output$influence <- renderPlot ({
-      predictors_influence()
-      # tryCatch({
-      #   predictors_influence()
-      # }, error = function(e){
-      #   message("Waiting for predictors...")
-      # })
+      tryCatch({
+        predictors_influence()
+      }, error = function(e){
+        message("Waiting for predictors...")
+      })
     })
   })
   

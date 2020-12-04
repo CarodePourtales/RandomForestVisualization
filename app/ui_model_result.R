@@ -43,10 +43,6 @@ ui_model_result_summary <- sidebarLayout(
       ),
       tabPanel("Predictors' importance",
                h2("Predictors importance on the class"),
-               conditionalPanel("input$dtree_type != 'dynamic' || input$dtree_package != 'randomForest'",
-                                helpText("Choose 2 variables. Drag and drop to reorder."), 
-                                selectizeInput("dtree_par2vars", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
-                    ),
               plotOutput("influence")
       ),
       tabPanel("Decision Tree",
@@ -68,20 +64,9 @@ ui_model_result_prediction <- sidebarLayout(
   )
 )
 
-ui_model_tree <- 
-  mainPanel(
-    fluidRow(
-      h2("Tree with rpart library"),
-      plotOutput("tree")
-    ),
-    width = 12
-    
-)
-
 ui_model_result <- tabItem(
   "model_result",
   tabsetPanel(
     tabPanel("Summary", ui_model_result_summary), 
-    tabPanel("Prediction and accruracy", ui_model_result_prediction),
-    tabPanel("Tree structure", ui_model_tree)
+    tabPanel("Prediction and accruracy", ui_model_result_prediction)
   ))
