@@ -45,7 +45,153 @@ server <- function(input, output, session) {
   
   # ===== METHOD
   
-  # OVERVIEW ========
+  # ==== DATA 
+  observe({
+    choices <- names(data_read())
+    updateSelectInput(session, "data_cols", choices = choices, selected = choices)
+  })
+  
+  observe({
+    data <- data_read()
+    output$tbl <- DT::renderDataTable(data[, input$data_cols], options = list(lengthChange = FALSE), width = 'auto')
+  })
+  
+  # ****
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "distrib_box_vars", choices = choices, selected = choices)
+  })
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "distrib_hist_vars", choices = choices)
+  })
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "plot_scatter_x", choices = choices)
+  })
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "plot_scatter_y", choices = choices)
+  })
+  
+  observe({
+    choices <- numericColumns()
+    updateSelectInput(session, "plot_scatter_clr", choices = choices)
+  })
+  
+  observe({
+    output$distrib_out <- renderPlot(
+      switch(
+        input$distrib_type,
+        "boxplot" = {
+          # boxplot(data_read()[, input$distrib_box_vars])
+          df <- data_read()
+          x <- df[, input$distrib_box_vars]
+          
+          plt <- ggplot(melt(x), aes(x = variable, y = value))
+          if (input$distrib_box_form == "violin") 
+            plt <- plt + geom_violin(aes(fill = variable)) 
+          else 
+            plt <- plt + geom_boxplot(aes(fill = variable))
+          
+          plt <- plt + scale_fill_discrete(type = "viridis") +
+            theme(
+                legend.position="none",
+                plot.title = element_text(size=11)
+            )
+          plt
+        },
+        "histogram" = {
+          # hist(data_read()[, input$distrib_hist_var], 
+          #      main = paste("Histogram for", input$distrib_hist_var),
+          #      xlab = input$distrib_hist_var, freq = (input$distrib_hist_freq == "Frequency"))
+          
+          stat = if(input$distrib_hist_space == "Continous") "bin" else "count"
+          
+          df <- data_read()
+          
+          if (length(input$distrib_hist_vars) == 0)
+            return(NULL)
+          
+          x <- df[, input$distrib_hist_vars]
+          
+          plt <- NULL
+          
+          if(length(input$distrib_hist_vars) == 1){
+            if(input$distrib_hist_freq == "Frequency")
+              plt <- ggplot(df, aes(x = x, y = (..count..))) + geom_histogram(alpha = 0.6, stat = stat)
+            else
+              plt <- ggplot(df, aes(x = x, y = (..count..)/sum(..count..))) + geom_histogram(alpha = 0.6, stat = stat)
+          }
+          else{
+            if(input$distrib_hist_freq == "Frequency")
+              plt <- ggplot(melt(x)) + geom_histogram(aes(x = value, y = (..count..), fill = variable), alpha = 0.6, stat = stat)
+            else
+              plt <- ggplot(melt(x)) + geom_histogram(aes(x = value, y = (..count..)/sum(..count..), fill = variable), alpha = 0.6, stat = stat)
+          }
+          
+          plt <- plt + labs(x = "values", y = input$distrib_hist_freq )
+          plt
+        }
+      )
+    )
+  })
+  
+  observe({
+    output$plot_out <- renderPlot({
+      df <- data_read()
+      xlab <- input$plot_scatter_x
+      ylab <- input$plot_scatter_y
+      
+      switch(
+        EXPR = input$plot_type,
+        "Scatter" = {
+          clr <- df[, input$plot_scatter_clr]
+
+          ggplot(df, aes(x=df[, xlab], y=df[, ylab], color = factor(clr) )) +
+            labs(x = xlab, y = ylab, color = input$plot_scatter_clr) +
+            geom_point()
+        },
+        "2D Histogram" = {
+          ggplot(df, aes(x=df[, xlab], y=df[, ylab])) + geom_bin2d() +
+            labs(x = xlab, y = ylab) +
+            scale_fill_continuous(type = "viridis") +
+            theme_bw()
+        },
+        "Hexbin" = {
+          ggplot(df, aes(x=df[, xlab], y=df[, ylab])) + geom_hex() +
+            labs(x = xlab, y = ylab) +
+            scale_fill_continuous(type = "viridis") +
+            theme_bw()
+        },
+        "2D Density" = {
+          geom <- input$plot_density_geom
+          contour <- (input$plot_density_contour == "TRUE")
+          plt <- ggplot(df, aes(x=df[, xlab], y=df[, ylab])) + geom_density_2d()
+          
+          if (geom == "raster"){
+            plt <- plt + stat_density_2d(aes(fill = ..density..), geom = geom, contour = FALSE)
+          }else{
+            plt <- plt + stat_density_2d(aes(fill = ..level..), geom = geom)
+          }
+
+          plt <- plt +
+            labs(x = xlab, y = ylab) +
+            scale_fill_continuous(type = "viridis") +
+            theme_bw()
+          plt
+        }
+      )
+    })
+  })
+  
+  # DATA ====
+  
+  # ==== OVERVIEW
   # https://github.com/saurfang/shinyCorrplot/
   
   # Correlation
@@ -140,10 +286,9 @@ server <- function(input, output, session) {
     data <- apply(data_read()[predictors], 2, summary)
     return(as.data.frame(data))
   })
-  
-  #====== OVERVIEW
-  
-  # RESULT ==============
+  # OVERVIEW ====
+
+  # ==== RESULT
   observe({
     choices <- setdiff(names(data_read()), input$class)
     updateSelectInput(session, "predictors", choices = choices)
@@ -154,11 +299,11 @@ server <- function(input, output, session) {
   })
   
   observe({
-    updateSelectInput(session, "axis_x", choices = names(data_read()))
+    updateSelectInput(session, "axis_x", choices = numericColumns())
   })
   
   observe({
-    updateSelectInput(session, "axis_y", choices = names(data_read()))
+    updateSelectInput(session, "axis_y", choices = numericColumns())
   })
   
   observe({

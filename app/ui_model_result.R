@@ -4,7 +4,8 @@ ui_model_result_summary <- sidebarLayout(
   sidebarPanel(
     selectInput("dtree_type", "Tree type", c("static", "dynamic")),
     selectInput("class","Select class : ", choices = c("Loading...")),
-    selectizeInput("predictors", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button"))),
+    helpText("Select the predictors fo the model. Drag and drop to reorder."),
+    selectizeInput("predictors", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop"))),
     sliderInput('split','Train rate',min=0.50,max=1.0,value=0.75,step=0.01),
     
     conditionalPanel("input.dtree_type == 'dynamic'",
@@ -64,7 +65,7 @@ ui_model_result_prediction <- sidebarLayout(
     fluidRow(
       splitLayout(cellWidths = c("50%", "50%"), plotOutput("prediction"), plotOutput("missclassified_prediction"))
     )
-    )
+  )
 )
 
 ui_model_tree <- 
