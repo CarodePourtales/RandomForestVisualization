@@ -327,30 +327,38 @@ server <- function(input, output, session) {
   observe({ 
     
     output$prediction <- renderPlot({
-      nobs <- nrow(data_read())
-      ntr <- input$split * nobs
-      indices.test <- (ntr+1):nobs
-      dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
-      dftest$prediction <- model.prediction()
-      p <- ggplot(dftest, aes(x=dftest[, input$axis_x], y=dftest[, input$axis_y], color = factor(dftest[, input$class]) )) +
-        labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Predictions")+ 
-        geom_point() 
-      print(p)
+      tryCatch({
+        nobs <- nrow(data_read())
+        ntr <- input$split * nobs
+        indices.test <- (ntr+1):nobs
+        dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
+        dftest$prediction <- model.prediction()
+        p <- ggplot(dftest, aes(x=dftest[, input$axis_x], y=dftest[, input$axis_y], color = factor(dftest[, input$class]) )) +
+          labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Predictions")+ 
+          geom_point() 
+        print(p)
+      }, error = function(e){
+        message("Waiting for model...")
+      })
     })
     
     output$missclassified_prediction <- renderPlot({
-      nobs <- nrow(data_read())
-      ntr <- input$split * nobs
-      indices.test <- (ntr+1):nobs
-      dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
-      dftest$prediction = model.prediction()
-      dftrue = dftest[dftest$prediction!=dftest[,input$class],]
-      if (nrow(dftrue)>0) {
-        p <- ggplot(dftrue, aes(x=dftrue[, input$axis_x], y=dftrue[, input$axis_y], color = factor(dftrue[, input$class]) )) +
-          labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Missclassified Predictions")+
-          geom_point()
-        print(p)}
-    })
+      tryCatch({
+        nobs <- nrow(data_read())
+        ntr <- input$split * nobs
+        indices.test <- (ntr+1):nobs
+        dftest <- data_read()[indices.test ,c(input$axis_x, input$axis_y, input$class)]
+        dftest$prediction = model.prediction()
+        dftrue = dftest[dftest$prediction!=dftest[,input$class],]
+        if (nrow(dftrue)>0) {
+          p <- ggplot(dftrue, aes(x=dftrue[, input$axis_x], y=dftrue[, input$axis_y], color = factor(dftrue[, input$class]) )) +
+            labs(x = input$axis_x, y = input$axis_y, color = input$class) + ggtitle("Missclassified Predictions")+
+            geom_point()
+          print(p)}
+        }, error = function(e){
+          message("Waiting for model...")
+        })
+      })
   })
   
   #========== RESULT
