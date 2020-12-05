@@ -62,14 +62,17 @@ ui_model_correlation <- sidebarLayout(
   
 ui_model_predictors <- sidebarLayout(
   sidebarPanel(
-    selectizeInput("ui_predictors", "Select predictors", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop")))
-  ),
+    selectInput("variables_transformation", "", c("Loading...")),
+    selectInput("transformations", "", c("Loading...")),
+    hr(),
+   ),
   mainPanel(
-    DT::dataTableOutput("predictors_summary")
+    h2('Apply transformation'),
+    splitLayout(cellWidths = c("50%", "50%"), plotOutput("no_transformation_plot"), plotOutput("transformation_plot"))
   )
 )
 
 ui_model_overview <- tabItem('model_overview', tabsetPanel(
   tabPanel("Correlation", ui_model_correlation),
-  tabPanel("Predictors overview", ui_model_predictors)
+  tabPanel("Predictors operations", ui_model_predictors)
 ))
