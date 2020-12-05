@@ -4,7 +4,7 @@ ui_model_result_summary <- sidebarLayout(
   sidebarPanel(
     selectInput("dtree_type", "Tree type", c("Single Tree" = "static", "Forest" = "dynamic")),
     conditionalPanel("input.dtree_type == 'dynamic'",
-                     selectInput("dtree_package", "Using package", c("Random Forest" = "randomForest","C Forest" = "cforest"), selected = "randomForest")),
+                     selectInput("dtree_package", "Using package", c("Random Forest" = "randomForest"), selected = "randomForest")),
     selectInput("class","Select class : ", choices = c("Loading...")),
     helpText("Select the predictors fo the model. Drag and drop to reorder."),
     selectizeInput("predictors", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop"))),
