@@ -212,7 +212,7 @@ server <- function(input, output, session) {
         return(NULL)
       
       x <- df[, input$variables_transformation]
-      plt <- hist(x, main = 'Variable')
+      plt <- hist(x, main = 'Variable without transformation')
       plt
     })
   })
@@ -228,19 +228,19 @@ server <- function(input, output, session) {
       x <- df[, input$variables_transformation]
       
       if (input$transformations == "sqrt") {
-        plt <- hist(sqrt(x), main = 'Variable')
+        plt <- hist(sqrt(x), main = 'Variable with transformation')
         plt
       }
       if (input$transformations == "log") {
-        plt <- hist(log(x), main = 'Variable')
+        plt <- hist(log(x), main = 'Variable with transformation')
         plt
       }
       if (input$transformations == "exp") {
-        plt <- hist(exp(x), main = 'Variable')
+        plt <- hist(exp(x), main = 'Variable with transformation')
         plt
       }
       if (input$transformations == "square") {
-        plt <- hist(x**2, main = 'Variable')
+        plt <- hist(x**2, main = 'Variable with transformation')
         plt
       }
       if (input$transformations == "volume") {
@@ -634,10 +634,10 @@ server <- function(input, output, session) {
   })
   
   predictors_influence_static <- reactive ({
-    op <- par(mfrow=c(1,1))
-    pred_influence_static()
-    par(op)
-    #barplot(unlist(model()$variable.importance/sum(model()$variable.importance)))
+    #op <- par(mfrow=c(1,1))
+    #pred_influence_static()
+    #par(op)
+    barplot(unlist(model()$variable.importance/sum(model()$variable.importance)))
   })
   
   observe({

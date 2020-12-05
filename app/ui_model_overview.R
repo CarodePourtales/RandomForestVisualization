@@ -62,8 +62,8 @@ ui_model_correlation <- sidebarLayout(
   
 ui_model_predictors <- sidebarLayout(
   sidebarPanel(
-    selectInput("variables_transformation", "", c("Loading...")),
-    selectInput("transformations", "", c("Loading...")),
+    selectInput("variables_transformation", "Variable to test for transformation", c("Loading...")),
+    selectInput("transformations", "Transformation type", c("Loading...")),
     hr(),
    ),
   mainPanel(
