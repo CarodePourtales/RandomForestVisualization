@@ -318,29 +318,25 @@ server <- function(input, output, session) {
     indices.train <- c(1:ntr) # 
     
     y_train <- as.factor(df[indices.train, input$class]) ~ .
-    x_train <<- df[indices.train, c(input$predictors)]
+    x_train <- df[indices.train, c(input$predictors)]
     
-    if(input$dtree_type == "dynamic"){
-      
-      if(input$dtree_package == "randomForest"){
+    if(input$dtree_type == "dynamic" && input$dtree_package == "randomForest"){
         return(
           randomForest(y_train, x_train,
                       mtry = as.integer(input$mtry), ntree = as.integer(input$ntree),
                       nodesize=as.integer(input$nodesize))
         )
-      }
-      
-      if(input$dtree_package == "cforest"){
+    }
+    if(input$dtree_type == "dynamic" && input$dtree_package == "cforest"){
         return(
-          train(y_train, x_train, method = "cforest", controls = cforest_classical(
-                 ntree = as.integer(input$ntree), mtry = as.integer(input$mtry), 
-                 maxdepth = as.integer(input$maxdepth))
-          )$finalModel
+          cforest(y_train, x_train, 
+                  control = cforest_unbiased(ntree = as.integer(input$ntree), mtry = as.integer(input$mtry), 
+                 maxdepth = as.integer(input$maxdepth)))
         )
       }
-    }else{
+    else{
       return(
-        rpart(y_train, x_train, method = input$method, control = rpart.control(cp = input$cp))
+        rpart(y_train, x_train, method = "class", control = rpart.control(cp = input$cp))
       )
     }
   })
@@ -367,10 +363,17 @@ server <- function(input, output, session) {
     x_test <- df[indices.test ,c(input$predictors, input$class)]
     
     m <- model()
-    if(input$dtree_type == "dynamic")
-      predict(m, newdata = x_test)
-    else
-      predict(m, x_test, type = input$rpart_class)
+    if(input$dtree_type == "dynamic") {
+      if(input$dtree_package == "cforest"){
+        predict(m, newdata = x_test, type = "response")
+      }
+      if(input$dtree_package == "randomForest"){
+        predict(m, newdata = x_test)
+       }
+    }
+    else {
+      predict(m, x_test, type = "class")
+    }
   })
   
   model.confusion_matrix <- reactive({
@@ -390,7 +393,7 @@ server <- function(input, output, session) {
     }
 
     observe({
-      output$randomForest <- renderPrint({
+      output$model_print <- renderPrint({
         print(model())
         
         # tryCatch({
