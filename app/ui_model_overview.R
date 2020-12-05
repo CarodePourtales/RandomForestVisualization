@@ -3,7 +3,7 @@ library("DT")
 
 ui_model_correlation <- sidebarLayout(
   sidebarPanel(
-    selectInput("corr_method", "Select method : ", choices = c("pearson", "kendall", "spearman")),
+    selectInput("corr_method", "Select method : ", choices = c("Pearson" = "pearson", "Kendall" = "kendall", "Spearman" = "spearman")),
     sliderInput('corr_precision','Precision',min=0,max=10,value=2,step=1),
     selectInput("corr_use", "NA Action",
                 c("everything", "all.obs", "complete.obs", "na.or.complete", "pairwise.complete.obs")),

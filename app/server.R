@@ -569,25 +569,16 @@ server <- function(input, output, session) {
     vars = c(input$predictors)
     classes = c(unique(data[, input$class]))
     
-    do.call("partial", list(model(), pred.var = input$dtree_par2vars, 
-                            data = x_train, plot = TRUE, rug = TRUE, 
-                            chull = TRUE, plot.engine = "ggplot2")) +
-      labs(title = paste("Partial Dependence of", input$dtree_par2vars))
+    barplot(unlist(model()$variable.importance/sum(model()$variable.importance)))
   })
   
   observe({
     output$influence <- renderPlot ({
-      tryCatch({
         if(input$dtree_type == 'dynamic'){
-          if(input$dtree_package == 'randomForest'){
             predictors_influence()
-          }
         } else {
             predictors_influence_static()
         }
-      }, error = function(e){
-        message("Waiting for predictors...")
-      })
     })
   })
   

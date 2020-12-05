@@ -41,10 +41,6 @@ ui_model_result_summary <- sidebarLayout(
       ),
       tabPanel("Predictors' importance",
                h2("Predictors importance on the class"),
-               conditionalPanel("input.dtree_type != 'dynamic' || input.dtree_package != 'randomForest'",
-                                helpText("Choose 2 variables. Drag and drop to reorder."), 
-                                selectizeInput("dtree_par2vars", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
-                    ),
               plotOutput("influence")
       )
     )
