@@ -22,8 +22,7 @@ ui_data_loading <- sidebarLayout(
 
 ui_data_summary <- sidebarLayout(
   sidebarPanel(
-    selectInput("distrib_type", "Plot type", c("boxplot", "histogram")),
-    
+    selectInput("distrib_type", "Plot type", c("Boxplot" = "boxplot", "Histogram" = "histogram")),
     conditionalPanel("input.distrib_type == 'boxplot'",
                      selectInput("distrib_box_form", "Form", c("box", "violin")),
                      helpText("Choose the variable to plot. Drag and drop to reorder."),
@@ -39,7 +38,12 @@ ui_data_summary <- sidebarLayout(
     )
   ),
   mainPanel(
-    plotOutput("distrib_out")
+    tabsetPanel(
+      tabPanel("Distribution plots",
+        plotOutput("distrib_out")),
+      tabPanel("Distribution table",
+        DT::dataTableOutput("predictors_summary"))
+    )
   )
 )
 

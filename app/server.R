@@ -194,6 +194,62 @@ server <- function(input, output, session) {
   # ==== OVERVIEW
   # https://github.com/saurfang/shinyCorrplot/
   
+  observe({
+    updateSelectInput(session, "variables_transformation", choices = (names(data_read())))
+  })
+  
+  observe({
+    choices <- c("Root"="sqrt","Logarithm"="log","Exponential"="exp","Square product"="square", "Pow 3"="volume")
+    updateSelectInput(session, "transformations", choices = choices)
+  })
+  
+  observe({
+    output$no_transformation_plot <- renderPlot ({
+      
+      df <- data_read()
+      
+      if (length(input$variables_transformation) == 0)
+        return(NULL)
+      
+      x <- df[, input$variables_transformation]
+      plt <- hist(x, main = 'Variable without transformation')
+      plt
+    })
+  })
+  
+  observe({
+    output$transformation_plot <- renderPlot ({
+      
+      df <- data_read()
+      
+      if (length(input$variables_transformation) == 0)
+        return(NULL)
+      
+      x <- df[, input$variables_transformation]
+      
+      if (input$transformations == "sqrt") {
+        plt <- hist(sqrt(x), main = 'Variable with transformation')
+        plt
+      }
+      if (input$transformations == "log") {
+        plt <- hist(log(x), main = 'Variable with transformation')
+        plt
+      }
+      if (input$transformations == "exp") {
+        plt <- hist(exp(x), main = 'Variable with transformation')
+        plt
+      }
+      if (input$transformations == "square") {
+        plt <- hist(x**2, main = 'Variable with transformation')
+        plt
+      }
+      if (input$transformations == "volume") {
+        plt <- hist(x**3, main = 'Variable')
+        plt
+      }
+    })
+  })
+  
   # Correlation
   correlation <- reactive({
     data <- data_read()
@@ -277,7 +333,7 @@ server <- function(input, output, session) {
   })
   
   output$predictors_summary <- DT::renderDataTable({
-    predictors <- input$ui_predictors
+    predictors <- input$distrib_box_vars
     
     if (length(predictors) == 0){
       return(NULL)
@@ -550,6 +606,19 @@ server <- function(input, output, session) {
                                 main=paste("Partial Dependence on",  pred, "with class", class)))
   }
   
+  pred_influence_static <- function() {
+    df <- data_read()
+    nobs <- nrow(df)
+    ntr <- input$split * nobs
+    indices.train <- c(1:ntr) # 
+    x_train <- df[indices.train, c(input$dtree_par2vars)]
+
+    do.call("partial", list(model(), pred.var = input$dtree_par2vars, 
+                            data = x_train, plot = TRUE, rug = TRUE, 
+                            chull = TRUE, plot.engine = "ggplot2")) +
+      labs(title = paste("Partial Dependence of", input$dtree_par2vars))
+  }
+  
   predictors_influence <- reactive ({
     data <- data_read()
     vars = c(input$predictors)
@@ -565,29 +634,19 @@ server <- function(input, output, session) {
   })
   
   predictors_influence_static <- reactive ({
-    data <- data_read()
-    vars = c(input$predictors)
-    classes = c(unique(data[, input$class]))
-    
-    do.call("partial", list(model(), pred.var = input$dtree_par2vars, 
-                            data = x_train, plot = TRUE, rug = TRUE, 
-                            chull = TRUE, plot.engine = "ggplot2")) +
-      labs(title = paste("Partial Dependence of", input$dtree_par2vars))
+    #op <- par(mfrow=c(1,1))
+    #pred_influence_static()
+    #par(op)
+    barplot(unlist(model()$variable.importance/sum(model()$variable.importance)))
   })
   
   observe({
     output$influence <- renderPlot ({
-      tryCatch({
         if(input$dtree_type == 'dynamic'){
-          if(input$dtree_package == 'randomForest'){
             predictors_influence()
-          }
         } else {
             predictors_influence_static()
         }
-      }, error = function(e){
-        message("Waiting for predictors...")
-      })
     })
   })
   

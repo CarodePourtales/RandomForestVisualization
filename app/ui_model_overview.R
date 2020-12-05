@@ -3,7 +3,7 @@ library("DT")
 
 ui_model_correlation <- sidebarLayout(
   sidebarPanel(
-    selectInput("corr_method", "Select method : ", choices = c("pearson", "kendall", "spearman")),
+    selectInput("corr_method", "Select method : ", choices = c("Pearson" = "pearson", "Kendall" = "kendall", "Spearman" = "spearman")),
     sliderInput('corr_precision','Precision',min=0,max=10,value=2,step=1),
     selectInput("corr_use", "NA Action",
                 c("everything", "all.obs", "complete.obs", "na.or.complete", "pairwise.complete.obs")),
@@ -62,14 +62,17 @@ ui_model_correlation <- sidebarLayout(
   
 ui_model_predictors <- sidebarLayout(
   sidebarPanel(
-    selectizeInput("ui_predictors", "Select predictors", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop")))
-  ),
+    selectInput("variables_transformation", "Variable to test for transformation", c("Loading...")),
+    selectInput("transformations", "Transformation type", c("Loading...")),
+    hr(),
+   ),
   mainPanel(
-    DT::dataTableOutput("predictors_summary")
+    h2('Apply transformation'),
+    splitLayout(cellWidths = c("50%", "50%"), plotOutput("no_transformation_plot"), plotOutput("transformation_plot"))
   )
 )
 
 ui_model_overview <- tabItem('model_overview', tabsetPanel(
   tabPanel("Correlation", ui_model_correlation),
-  tabPanel("Predictors overview", ui_model_predictors)
+  tabPanel("Predictors operations", ui_model_predictors)
 ))
