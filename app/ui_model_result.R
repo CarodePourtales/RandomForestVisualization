@@ -82,11 +82,12 @@ ui_model_comparison_summary <- sidebarLayout(
     selectizeInput("checkpoints", "Choose checkpoints", c("Loading..."), 
                    multiple = T, options = list(plugins = list("remove_button", "drag_drop"))),
     selectInput("params", "Choose parameter (red)", c("Loading...")),
-    selectInput("measures", "Choose measures (green)", c("Loading...")),
+    selectInput("measures", "Choose measures (black)", c("Loading...")),
     selectInput("comparison_plot_type", "Plot type", c("dot", "line"))
   ),
   mainPanel(
-    plotOutput("model_comparison_plot")
+    ggvisOutput("ggvis_measures"),
+    ggvisOutput("ggvis_params")
   )
 )
 

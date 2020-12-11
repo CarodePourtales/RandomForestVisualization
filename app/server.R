@@ -335,16 +335,32 @@ server <- function(input, output, session) {
     updateSelectInput(session, "ui_predictors", choices = numericColumns(), selected = numericColumns())
   })
   
-  output$predictors_summary <- DT::renderDataTable({
-    predictors <- input$distrib_box_vars
-    
-    if (length(predictors) == 0){
-      return(NULL)
-    }
-    
-    data <- apply(data_read()[predictors], 2, summary)
-    return(as.data.frame(data))
+  observeEvent(input$distrib_hist_vars, {
+    output$predictors_summary <- DT::renderDataTable({
+      predictors <- input$distrib_hist_vars
+      
+      if (length(predictors) == 0){
+        return(NULL)
+      }
+      
+      data <- apply(data_read()[predictors], 2, summary)
+      return(as.data.frame(data))
+    })
   })
+  
+  observeEvent(input$distrib_box_vars, {
+    output$predictors_summary <- DT::renderDataTable({
+      predictors <- input$distrib_box_vars
+      
+      if (length(predictors) == 0){
+        return(NULL)
+      }
+      
+      data <- apply(data_read()[predictors], 2, summary)
+      return(as.data.frame(data))
+    })
+  })
+  
   # OVERVIEW ====
 
   # ==== RESULT
@@ -769,12 +785,20 @@ server <- function(input, output, session) {
     }
   })
   
+  param_list <- function(){
+    c("dtree_type", "dtree_package", "class", "predictors", "split", "ntree", "mtry", "nodesize", "maxdepth", "cp")
+  }
+  
+  measure_list <- function(){
+    c("accuracyrate", "fmeasure", "precision", "sensitivity", "specificity")
+  }
+  
   observe({
-    updateSelectInput(session, "params", choices = c("dtree_type", "dtree_package", "class", "predictors", "split", "ntree", "mtry", "nodesize", "maxdepth", "cp"))
+    updateSelectInput(session, "params", choices = param_list())
   })
   
   observe({
-    updateSelectInput(session, "measures", "Select measures", c("accuracyrate", "fmeasure", "precision", "sensitivity", "specificity"))
+    updateSelectInput(session, "measures", choices = measure_list())
   })
   
   as.data.frame.hash <- function(x) {
@@ -784,32 +808,64 @@ server <- function(input, output, session) {
     colnames(df) <- cols
     df
   }
-  
-  observe({
-    output$model_comparison_plot <- renderPlot({
-      ckps <- lapply(X = input$checkpoints, function(name) unlist(strsplit(name, ' ', fixed = TRUE))[1])
-      ckps <- lapply(X = ckps, function(ckp) saved_models[[ckp]])
-      
-      df <- bind_rows(lapply(ckps, function(ckp) as.data.frame.hash(ckp)))
-      print(df)
-      if(input$comparison_plot_type == "line"){
-        return(
-          ggplot(df) +
-            geom_line(data = df, aes(x = df[, "date"], y = df[, input$measures]), color="#69b3a2") +
-            geom_line(data = df, aes(x = df[, "date"], y = df[, input$params]), color="#af2f14") +
-            labs(x = "Checkpoint", y = "Value", label = "Checkpoint")
-        )
-      }
+
+  observeEvent(input$checkpoints, {
+    ckps <- lapply(X = input$checkpoints, function(name) unlist(strsplit(name, ' ', fixed = TRUE))[1])
+    ckps <- lapply(X = ckps, function(ckp) saved_models[[ckp]])
+    df <- bind_rows(lapply(ckps, function(ckp) as.data.frame.hash(ckp)))
+    
+    ggvis_measures <- reactive({
+      xvar <- prop("x", as.symbol("date"))
+      yvar <- prop("y", as.symbol(input$measures))
+      plt <- df %>% ggvis(x = xvar, y = yvar)
       
       if(input$comparison_plot_type == "dot"){
-        return(
-          ggplot(df) +
-            geom_point(aes(x = df[, "date"], y = df[, input$measures], label = df[, "date"]), shape=21, color="black", fill="#69b3a2", size=6) +
-            geom_point(aes(x = df[, "date"], y = df[, input$params], label = df[, "date"]), shape=21, color="black", fill="#af2f14", size=6) +
-            labs(x = "Checkpoint", y = "Value", label = "Checkpoint")
-        ) 
+        plt <- plt %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "black")
       }
+      
+      if(input$comparison_plot_type == "line"){
+        plt <- plt %>% layer_lines() %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "black")
+      }
+      
+      plt <- plt %>%
+        add_tooltip(function(data){
+          d <- df[ df$date == data$date, param_list()]
+          paste(
+            lapply(colnames(d), function(attr) paste0(attr, ": ", as.character(d[[attr]]))),
+            collapse = "<br>"
+          )
+        }, "hover")
+      
+      plt
     })
+    ggvis_measures %>% bind_shiny("ggvis_measures")
+  
+    ggvis_params <- reactive({
+      xvar <- prop("x", as.symbol("date"))
+      yvar <- prop("y", as.symbol(input$params))
+      plt <- df %>% ggvis(x = xvar, y = yvar)
+      
+      if(input$comparison_plot_type == "dot"){
+        plt <- plt %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "red")
+      }
+    
+      if(input$comparison_plot_type == "line"){
+        plt <- plt %>% layer_lines() %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "red")
+      }
+      
+      plt <- plt %>%
+        add_tooltip(function(data){
+          d <- df[ df$date == data$date, measure_list()]
+          paste(
+            lapply(colnames(d), function(attr) paste0(attr, ": ", as.character(d[[attr]]))),
+            collapse = "<br>"
+          )
+        }, "hover")
+      
+      plt
+    })
+    ggvis_params %>% bind_shiny("ggvis_params")
+    
   })
   # COMPARISON ====
 }

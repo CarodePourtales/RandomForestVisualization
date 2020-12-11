@@ -20,6 +20,7 @@ library(e1071)
 library(data.table)
 library(hash)
 library(openssl)
+library(ggvis)
 
 source("ui.R")
 source("server.R")
