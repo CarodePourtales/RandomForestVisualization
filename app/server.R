@@ -1,6 +1,9 @@
 # Server ------------------------------------------------------------------
 
 server <- function(input, output, session) {
+  # ATTRIBUTES
+  saved_models <<- hash()
+  current_model <<- hash()
   
   # METHOD ====
   data_read <- function() {
@@ -332,16 +335,32 @@ server <- function(input, output, session) {
     updateSelectInput(session, "ui_predictors", choices = numericColumns(), selected = numericColumns())
   })
   
-  output$predictors_summary <- DT::renderDataTable({
-    predictors <- input$distrib_box_vars
-    
-    if (length(predictors) == 0){
-      return(NULL)
-    }
-    
-    data <- apply(data_read()[predictors], 2, summary)
-    return(as.data.frame(data))
+  observeEvent(input$distrib_hist_vars, {
+    output$predictors_summary <- DT::renderDataTable({
+      predictors <- input$distrib_hist_vars
+      
+      if (length(predictors) == 0){
+        return(NULL)
+      }
+      
+      data <- apply(data_read()[predictors], 2, summary)
+      return(as.data.frame(data))
+    })
   })
+  
+  observeEvent(input$distrib_box_vars, {
+    output$predictors_summary <- DT::renderDataTable({
+      predictors <- input$distrib_box_vars
+      
+      if (length(predictors) == 0){
+        return(NULL)
+      }
+      
+      data <- apply(data_read()[predictors], 2, summary)
+      return(as.data.frame(data))
+    })
+  })
+  
   # OVERVIEW ====
 
   # ==== RESULT
@@ -375,39 +394,22 @@ server <- function(input, output, session) {
     
     y_train <- as.factor(df[indices.train, input$class]) ~ .
     x_train <- df[indices.train, c(input$predictors)]
-    
+
     if(input$dtree_type == "dynamic" && input$dtree_package == "randomForest"){
-        return(
-          randomForest(y_train, x_train,
+      return(randomForest(y_train, x_train,
                       mtry = as.integer(input$mtry), ntree = as.integer(input$ntree),
                       nodesize=as.integer(input$nodesize))
-        )
+      )
     }
     if(input$dtree_type == "dynamic" && input$dtree_package == "cforest"){
-        return(
-          cforest(y_train, x_train, 
-                  control = cforest_unbiased(ntree = as.integer(input$ntree), mtry = as.integer(input$mtry), 
-                 maxdepth = as.integer(input$maxdepth)))
+        return(cforest(y_train, x_train, 
+                    control = cforest_unbiased(ntree = as.integer(input$ntree), mtry = as.integer(input$mtry), 
+                   maxdepth = as.integer(input$maxdepth)))
         )
       }
     else{
-      return(
-        rpart(y_train, x_train, method = "class", control = rpart.control(cp = input$cp))
-      )
+      return(rpart(y_train, x_train, method = "class", control = rpart.control(cp = input$cp)))
     }
-  })
-  
-  model_rpart <-reactive({
-    df <- data_read()
-    
-    nobs <- nrow(df)
-    ntr <- input$split *nobs
-    indices.train <- 1:ntr # 
-    
-    y_train <- as.factor(df[indices.train,input$class]) ~ .
-    x_train <- df[indices.train ,c(input$predictors)]
-    
-    rpart(y_train, data = x_train, method = "class")
   })
   
   model.prediction <- reactive({
@@ -421,11 +423,12 @@ server <- function(input, output, session) {
     m <- model()
     if(input$dtree_type == "dynamic") {
       if(input$dtree_package == "cforest"){
-        predict(m, newdata = x_test, type = "response")
+        current_model[["prediction"]] <<- predict(m, newdata = x_test, type = "response")
+        current_model[["prediction"]]
       }
       if(input$dtree_package == "randomForest"){
         predict(m, newdata = x_test)
-       }
+      }
     }
     else {
       predict(m, x_test, type = "class")
@@ -461,16 +464,6 @@ server <- function(input, output, session) {
     })
 
     observe({
-      output$tree <- renderPlot ({
-        tryCatch({
-          rpart.plot(model_rpart(), tweak = 1.5)
-        }, error = function(e){
-          message("Waiting for predictors...")
-        })
-      })
-    })
-    
-    observe({
       output$confusionmatrix <- renderPrint({
         tryCatch({
           model.confusion_matrix()
@@ -490,6 +483,7 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.accuracyrate = (cm[1,1] + cm[2,2]) / (cm[1,1] + cm[1,2] + cm[2,1] +cm[2,2])
           model.accuracyrate =  round(model.accuracyrate, 3)
+          current_model[["accuracyrate"]] <<- model.accuracyrate
           make_value_box(tags$p("Accuracy", style = "font-size: 50%;"), tags$p(model.accuracyrate, style = "font-size: 170%;"))
         }, error = function(e){
           make_value_box(tags$p("Accuracy", style = "font-size: 50%;"), "Waiting for model...")
@@ -503,6 +497,7 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.sensitivity = cm[2,2]/(cm[1,2] + cm[2,2])
           model.sensitivity =  round(model.sensitivity, 3)
+          current_model[["sensitivity"]] <<- model.sensitivity
           make_value_box(tags$p("Sensitivity", style = "font-size: 50%;"), tags$p(model.sensitivity, style = "font-size: 170%;"))
         }, error = function(e){
             make_value_box(tags$p("Sensitivity", style = "font-size: 50%;"), "Waiting for model...")
@@ -516,6 +511,7 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.specificity = cm[1,1]/(cm[1,1] + cm[2,1])
           model.specificity =  round(model.specificity, 3)
+          current_model[["specificity"]] <<- model.specificity
           make_value_box(tags$p("Specificity", style = "font-size: 50%;"), tags$p(model.specificity, style = "font-size: 160%;"))
         }, error = function(e){
           make_value_box(tags$p("Specificity", style = "font-size: 50%;"), "Waiting for model...")
@@ -529,6 +525,7 @@ server <- function(input, output, session) {
           cm <- model.confusion_matrix()
           model.precision = cm[2,2]/(cm[2,1] + cm[2,2])
           model.precision =  round(model.precision, 3)
+          current_model[["precision"]] <<- model.precision
           make_value_box(tags$p("Precision", style = "font-size: 50%;"), tags$p(model.precision, style = "font-size: 170%;"))
         }, error = function(e){
           make_value_box(tags$p("Precision", style = "font-size: 50%;"), "Waiting for model...")
@@ -543,9 +540,10 @@ server <- function(input, output, session) {
           model.precision = cm[2,2]/(cm[2,1] + cm[2,2])
           model.sensitivity = cm[2,2]/(cm[1,2] + cm[2,2])
           
-          model.fmesure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
-          model.fmesure =  round(model.fmesure, 3)
-          make_value_box(tags$p("F-Measure", style = "font-size: 50%;"), tags$p(model.fmesure, style = "font-size: 170%;"))
+          model.fmeasure = (2*model.precision*model.sensitivity)/(model.sensitivity + model.precision)
+          model.fmeasure =  round(model.fmeasure, 3)
+          current_model[["fmeasure"]] <<- model.fmeasure
+          make_value_box(tags$p("F-Measure", style = "font-size: 50%;"), tags$p(model.fmeasure, style = "font-size: 170%;"))
         }, error = function(e){
           make_value_box(tags$p("F-Measure", style = "font-size: 50%;"), "Waiting for model...")
         })
@@ -716,4 +714,158 @@ server <- function(input, output, session) {
   })
   
   # RESULT ====
+  
+  # ==== COMPARISON
+  get_checkpoint_list <- function(){
+    #print(length(keys(saved_models)))
+    lapply(X = keys(saved_models), function(hashcode) paste(hashcode, "(", saved_models[[hashcode]][["date"]], ")"))
+  } 
+  
+  observeEvent(input$action_save_model, {
+    cm <- hash()
+    cm[["dtree_type"]] <- input$dtree_type
+    cm[["dtree_package"]] <- ifelse(input$dtree_type == 'dynamic', input$dtree_package, input$dtree_package)
+    cm[["class"]] <- input$class
+    cm[["predictors"]] <- paste(input$predictors, collapse = ";")
+    cm[["split"]] <- input$split
+    cm[["ntree"]] <- ifelse(input$dtree_type == 'dynamic', input$ntree, input$ntree)
+    cm[["mtry"]] <- ifelse(input$dtree_type == 'dynamic', input$mtry, input$mtry)
+    cm[["nodesize"]] <- ifelse(input$dtree_package == 'randomForest', input$nodesize, input$nodesize)
+    cm[["maxdepth"]] <- ifelse(input$dtree_package == 'cforest', input$maxdepth, input$maxdepth)
+    cm[["cp"]] <- ifelse(input$dtree_type == 'static', input$cp, input$cp)
+    cm[["accuracyrate"]] <- current_model[["accuracyrate"]]
+    cm[["fmeasure"]] <- current_model[["fmeasure"]]        
+    cm[["precision"]] <- current_model[["precision"]]  
+    cm[["sensitivity"]] <- current_model[["sensitivity"]]       
+    cm[["specificity"]] <- current_model[["specificity"]]
+    
+    ckp_name <- as.character(md5(paste(values(cm), collapse = "")))
+    
+    cm[["date"]] <- as.character(Sys.time())
+  
+    if(ckp_name %in% c(keys(saved_models))){
+      date <- (saved_models[[ckp_name]])[["date"]]
+      session$sendCustomMessage(type = "warning", 
+                                message = paste("A model with current parameters is already saved at", date))
+      return()
+    }
+    
+    saved_models[[ckp_name]] <<- cm
+    choices <- get_checkpoint_list()
+    updateSelectInput(session, "model_to_load", choices = choices, selected = head(choices))
+    updateSelectInput(session, "checkpoints", choices = choices)
+  })
+  
+  observeEvent(input$action_load_model, {
+    ckp <- input$model_to_load
+    ckp <- unlist(strsplit(ckp, ' ', fixed = TRUE))[1]
+    cm <- saved_models[[ckp]]
+    
+    updateSelectInput(session, "dtree_type", selected = cm[["dtree_type"]])
+    updateSelectInput(session, "dtree_package", selected = cm[["dtree_package"]])
+    updateSelectInput(session, "class", selected = cm[["class"]])
+    updateSelectInput(session, "predictors", selected = unlist(strsplit(cm[["predictors"]], ';', fixed = TRUE)))
+    updateSelectInput(session, "split", selected = cm[["split"]])
+    updateSelectInput(session, "ntree", selected = cm[["ntree"]])
+    updateSelectInput(session, "mtry", selected = cm[["mtry"]])
+    updateSelectInput(session, "nodesize", selected = cm[["nodesize"]])
+    updateSelectInput(session, "maxdepth", selected = cm[["maxdepth"]])
+    updateSelectInput(session, "cp", selected = cm[["cp"]])
+  })
+
+  observeEvent(input$action_delete_model, {
+    ckp <- input$model_to_load
+    ckp <- unlist(strsplit(ckp, ' ', fixed = TRUE))[1]
+    
+    if(ckp %in% keys(saved_models)){
+      del(ckp, saved_models)
+      choices <- get_checkpoint_list()
+      updateSelectInput(session, "model_to_load", choices = choices, selected = head(choices))
+      updateSelectInput(session, "checkpoints", choices = get_checkpoint_list())
+    }
+  })
+  
+  param_list <- function(){
+    c("dtree_type", "dtree_package", "class", "predictors", "split", "ntree", "mtry", "nodesize", "maxdepth", "cp")
+  }
+  
+  measure_list <- function(){
+    c("accuracyrate", "fmeasure", "precision", "sensitivity", "specificity")
+  }
+  
+  observe({
+    updateSelectInput(session, "params", choices = param_list())
+  })
+  
+  observe({
+    updateSelectInput(session, "measures", choices = measure_list())
+  })
+  
+  as.data.frame.hash <- function(x) {
+    vals <- paste(unlist(values(x)))
+    cols <- keys(x) 
+    df <- as.data.frame(matrix(data = vals, nrow = 1, ncol = length(cols)))
+    colnames(df) <- cols
+    df
+  }
+
+  observeEvent(input$checkpoints, {
+    ckps <- lapply(X = input$checkpoints, function(name) unlist(strsplit(name, ' ', fixed = TRUE))[1])
+    ckps <- lapply(X = ckps, function(ckp) saved_models[[ckp]])
+    df <- bind_rows(lapply(ckps, function(ckp) as.data.frame.hash(ckp)))
+    
+    ggvis_measures <- reactive({
+      xvar <- prop("x", as.symbol("date"))
+      yvar <- prop("y", as.symbol(input$measures))
+      plt <- df %>% ggvis(x = xvar, y = yvar)
+      
+      if(input$comparison_plot_type == "dot"){
+        plt <- plt %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "black")
+      }
+      
+      if(input$comparison_plot_type == "line"){
+        plt <- plt %>% layer_lines() %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "black")
+      }
+      
+      plt <- plt %>%
+        add_tooltip(function(data){
+          d <- df[ df$date == data$date, param_list()]
+          paste(
+            lapply(colnames(d), function(attr) paste0(attr, ": ", as.character(d[[attr]]))),
+            collapse = "<br>"
+          )
+        }, "hover")
+      
+      plt
+    })
+    ggvis_measures %>% bind_shiny("ggvis_measures")
+  
+    ggvis_params <- reactive({
+      xvar <- prop("x", as.symbol("date"))
+      yvar <- prop("y", as.symbol(input$params))
+      plt <- df %>% ggvis(x = xvar, y = yvar)
+      
+      if(input$comparison_plot_type == "dot"){
+        plt <- plt %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "red")
+      }
+    
+      if(input$comparison_plot_type == "line"){
+        plt <- plt %>% layer_lines() %>% layer_points(size := input_slider(100, 1000, value = 100), fill := "red")
+      }
+      
+      plt <- plt %>%
+        add_tooltip(function(data){
+          d <- df[ df$date == data$date, measure_list()]
+          paste(
+            lapply(colnames(d), function(attr) paste0(attr, ": ", as.character(d[[attr]]))),
+            collapse = "<br>"
+          )
+        }, "hover")
+      
+      plt
+    })
+    ggvis_params %>% bind_shiny("ggvis_params")
+    
+  })
+  # COMPARISON ====
 }
