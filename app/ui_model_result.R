@@ -6,8 +6,7 @@ ui_model_result_summary <- sidebarLayout(
     conditionalPanel("input.dtree_type == 'dynamic'",
                      selectInput("dtree_package", "Using package", c("Random Forest" = "randomForest"), selected = "randomForest")),
     selectInput("class","Select class : ", choices = c("Loading...")),
-    helpText("Select the predictors fo the model. Drag and drop to reorder."),
-    selectizeInput("predictors", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop"))),
+    selectizeInput("predictors", "Select the predictors fo the model. Drag and drop to reorder.", c("Loading..."), multiple = T, options = list(plugins = list("remove_button", "drag_drop"))),
     hr(),
     sliderInput('split','Train rate',min=0.50,max=1.0,value=0.75,step=0.01),
     
@@ -24,6 +23,11 @@ ui_model_result_summary <- sidebarLayout(
     conditionalPanel("input.dtree_type == 'static'",
                      numericInput("cp", "Complexity parameter", min = 0.001, max = 1.0, step = 0.001, value = 0.01)
     ),
+    actionButton("action_save_model", "Save this model..."),
+    
+    selectInput("model_to_load", "Select a checkpoint to load", c("No checkpoint...")),
+    actionButton("action_load_model", "Load model..."),
+    actionButton("action_delete_model", "Delete model...")
   ),
   mainPanel(
     verbatimTextOutput("warning"),
@@ -42,8 +46,7 @@ ui_model_result_summary <- sidebarLayout(
       tabPanel("Predictors' importance",
                h2("Predictors importance on the class"),
                conditionalPanel("input.dtree_type != 'dynamic' || input.dtree_package != 'randomForest'",
-                                helpText("Choose 2 variables. Drag and drop to reorder."), 
-                                selectizeInput("dtree_par2vars", "", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
+                                # selectizeInput("dtree_par2vars", "Choose 2 variables. Drag and drop to reorder", c("Loading..."), multiple = T, options = list(plugins = list("remove_button")))
                     ),
               plotOutput("influence")
       )
@@ -68,8 +71,22 @@ ui_model_result_prediction <- sidebarLayout(
       ),
       tabPanel("Decision Tree",
                h2("Visualise the decision making process"),
-               plotOutput("dtree"))
+               plotOutput("dtree")
+      )
     )
+  )
+)
+
+ui_model_comparison_summary <- sidebarLayout(
+  sidebarPanel(
+    selectizeInput("checkpoints", "Choose checkpoints", c("Loading..."), 
+                   multiple = T, options = list(plugins = list("remove_button", "drag_drop"))),
+    selectInput("params", "Choose parameter (red)", c("Loading...")),
+    selectInput("measures", "Choose measures (green)", c("Loading...")),
+    selectInput("comparison_plot_type", "Plot type", c("dot", "line"))
+  ),
+  mainPanel(
+    plotOutput("model_comparison_plot")
   )
 )
 
@@ -78,5 +95,6 @@ ui_model_result <- tabItem(
   "model_result",
   tabsetPanel(
     tabPanel("Summary", ui_model_result_summary), 
-    tabPanel("Prediction and accruracy", ui_model_result_prediction)
+    tabPanel("Prediction and accruracy", ui_model_result_prediction),
+    tabPanel("Comparison", ui_model_comparison_summary)
   ))

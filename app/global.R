@@ -18,6 +18,8 @@ library(pdp)
 library(caret)
 library(e1071)
 library(data.table)
+library(hash)
+library(openssl)
 
 source("ui.R")
 source("server.R")

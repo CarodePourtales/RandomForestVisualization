@@ -10148,3 +10148,8 @@ th {
 .card-title, .card-header {
   color: inherit;
 }
+
+#ui_corr_plot {
+  float: left;
+}
+
